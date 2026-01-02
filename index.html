@@ -21,7 +21,7 @@
       color:var(--text);
       font-family: system-ui, -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
     }
-    .wrap{ max-width: 1120px; margin:0 auto; }
+    .wrap{ max-width: 980px; margin:0 auto; }
     h1{ margin: 0 0 12px; font-size: 22px; }
     .topbar{
       display:flex; gap:10px; flex-wrap:wrap; align-items:center;
@@ -51,8 +51,8 @@
       padding: 14px;
       box-shadow: var(--shadow);
     }
-    .wide{ flex: 1 1 650px; }
-    .side{ flex: 1 1 420px; }
+    .wide{ flex: 1 1 620px; }
+    .side{ flex: 1 1 320px; }
     .muted{ color:var(--muted); font-size: 13px; }
     .section-title{
       font-weight: 900;
@@ -80,64 +80,23 @@
       background:#fff;
     }
     .choice input{ margin:0; }
-    .inline{
-      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
-    }
+
     textarea{
       width:100%;
       border-radius: 14px;
       border:1px solid rgba(0,0,0,.12);
       padding: 10px;
-      min-height: 180px;
+      min-height: 170px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 12px;
       background:#fbfbff;
-    }
-    .two-col{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    @media (max-width: 900px){
-      .two-col{ grid-template-columns: 1fr; }
-      .stat-name{ width: 120px; }
-    }
-    table{
-      width:100%;
-      border-collapse: collapse;
-      border-radius: 12px;
-      overflow:hidden;
-      border:1px solid rgba(0,0,0,.10);
-    }
-    th, td{
-      padding: 10px 10px;
-      border-bottom:1px solid rgba(0,0,0,.08);
-      text-align:left;
-      font-size: 13px;
-    }
-    th{ background:#f3f4f6; font-weight:900; }
-    tr:last-child td{ border-bottom:0; }
-    .num{ text-align:right; white-space:nowrap; }
-    input[type="number"]{
-      width: 90px;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border:1px solid rgba(0,0,0,.18);
-      font-size: 13px;
-    }
-    input[type="text"]{
-      width: 100%;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border:1px solid rgba(0,0,0,.18);
-      font-size: 13px;
     }
     .kpi{
       display:flex; gap:10px; flex-wrap:wrap;
       margin-top:10px;
     }
     .kpi .box{
-      flex:1 1 160px;
+      flex:1 1 180px;
       border:1px solid rgba(0,0,0,.10);
       border-radius: 12px;
       padding: 10px 12px;
@@ -151,14 +110,12 @@
       border-radius: 12px;
       padding: 10px 12px;
       background:#fff;
-      max-height: 240px;
+      max-height: 220px;
       overflow:auto;
       font-size: 12px;
       line-height: 1.45;
       white-space: pre-wrap;
     }
-
-    /* print */
     @media print{
       body{ background:#fff; margin: 12mm; }
       .topbar, .muted, .pill, button{ display:none !important; }
@@ -177,7 +134,6 @@
       <button id="growthRollBtn">📈 시나리오 성장 (3D10)</button>
       <button id="growthManualBtn">✍️ 성장 수동추가</button>
 
-      <!-- ✅ JSON 저장/불러오기 -->
       <button id="saveJsonBtn">💾 JSON 저장</button>
       <button id="loadJsonBtn">📂 JSON 불러오기</button>
       <button id="clearAutoSaveBtn" class="warn">🗑️ 자동저장 삭제</button>
@@ -185,7 +141,7 @@
       <button id="resetBtn" class="warn">🧹 리셋</button>
 
       <span class="pill"><b>seed</b> <span id="seedView">-</span></span>
-      <span class="pill"><input type="checkbox" id="cap50" checked> <label for="cap50">특성/기능 최대 50</label></span>
+      <span class="pill"><input type="checkbox" id="cap50" checked> <label for="cap50">특성 최대 50</label></span>
       <span class="pill"><input type="checkbox" id="freeApp" checked> <label for="freeApp">APP(외모) 자유 조정</label></span>
 
       <button id="copySummaryBtn">📋 요약 복사</button>
@@ -197,18 +153,23 @@
       <div class="card wide">
         <div class="section-title">
           <span>특성치 / 세부사항 (3회 후보 선택)</span>
-          <small class="muted">첫 생성(13세): (주사위값)/2, EDU=45 고정</small>
+          <small class="muted">첫 생성(13세): APP 제외 /2, EDU=45 고정 (중복 적용 방지)</small>
         </div>
 
         <div class="grid" id="statsGrid"></div>
 
         <div class="kpi">
           <div class="box">
-            <div class="label">기능 성장 포인트(누적)</div>
+            <div class="label">기능점수 예산</div>
+            <div class="value"><span id="skillBudget">-</span></div>
+            <div class="muted" style="margin-top:6px;">직업(EDU×4) + 흥미(INT×2)</div>
+          </div>
+          <div class="box">
+            <div class="label">성장 포인트(누적)</div>
             <div class="value"><span id="growthTotal">0</span> / <span id="growthLimit">120</span></div>
           </div>
           <div class="box">
-            <div class="label">현재 배분 가능한 포인트(풀)</div>
+            <div class="label">배분 가능한 성장 풀</div>
             <div class="value"><span id="growthPool">0</span></div>
           </div>
           <div class="box">
@@ -218,112 +179,39 @@
         </div>
 
         <div style="margin-top:14px;" class="section-title">
-          <span>기능(스킬) 배분</span>
-          <small class="muted">성장 포인트 풀에서 배분 (CAP/APP 규칙 자동 적용)</small>
+          <span>결과 출력</span>
+          <small class="muted">복사용</small>
         </div>
 
-        <div class="two-col">
-          <div>
-            <table>
-              <thead>
-                <tr>
-                  <th style="width:46%;">기능</th>
-                  <th class="num" style="width:18%;">현재</th>
-                  <th class="num" style="width:18%;">증가</th>
-                  <th class="num" style="width:18%;">적용</th>
-                </tr>
-              </thead>
-              <tbody id="skillsBody"></tbody>
-            </table>
+        <div class="muted" style="margin:0 0 6px;">요약</div>
+        <textarea id="outSummary" readonly></textarea>
 
-            <div class="inline" style="margin-top:10px;">
-              <button id="applySkillBtn" class="primary">✅ 증가 적용</button>
-              <button id="clearDeltaBtn">↩️ 증가값 초기화</button>
-            </div>
-
-            <div class="inline" style="margin-top:10px;">
-              <div style="flex:1 1 220px;">
-                <div class="muted" style="margin:0 0 6px;">새 기능 추가</div>
-                <input type="text" id="newSkillName" placeholder="예: 은신" />
-              </div>
-              <div>
-                <div class="muted" style="margin:0 0 6px;">초기값</div>
-                <input type="number" id="newSkillBase" value="0" min="0" max="50" />
-              </div>
-              <div style="align-self:flex-end;">
-                <button id="addSkillBtn">➕ 추가</button>
-              </div>
-            </div>
-
-            <div class="muted" style="margin-top:8px;">
-              기능 목록/초기값은 자유롭게 편집 가능.
-            </div>
-          </div>
-
-          <div>
-            <div class="section-title">
-              <span>성장 로그</span>
-              <small class="muted">획득/배분 기록</small>
-            </div>
-            <div class="log" id="logBox"></div>
-
-            <div style="margin-top:12px;" class="section-title">
-              <span>결과 출력</span>
-              <small class="muted">복사용 텍스트</small>
-            </div>
-
-            <div class="muted" style="margin:0 0 6px;">요약</div>
-            <textarea id="outSummary" readonly></textarea>
-
-            <div class="muted" style="margin:10px 0 6px;">Roll20 채팅용</div>
-            <textarea id="outRoll20" readonly></textarea>
-          </div>
-        </div>
+        <div class="muted" style="margin:10px 0 6px;">Roll20 채팅용</div>
+        <textarea id="outRoll20" readonly></textarea>
       </div>
 
       <div class="card side">
         <div class="section-title">
-          <span>수동 조정(백스토리 합의)</span>
-          <small class="muted">토글/상한 규칙 적용</small>
+          <span>성장 로그</span>
+          <small class="muted">획득 기록</small>
         </div>
-
-        <div class="muted" style="margin-bottom:8px;">
-          주사위 없이 합의한 값으로 수동 조정 가능.
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>항목</th>
-              <th class="num">현재</th>
-              <th class="num">수정</th>
-            </tr>
-          </thead>
-          <tbody id="manualStatsBody"></tbody>
-        </table>
-
-        <div class="inline" style="margin-top:10px;">
-          <button id="applyManualStatsBtn" class="primary">✅ 수동값 적용</button>
-        </div>
+        <div class="log" id="logBox"></div>
 
         <div style="margin-top:14px;" class="section-title">
-          <span>세부사항(1d10)</span>
-          <small class="muted">문구 매핑은 커스텀 추천</small>
+          <span>메모</span>
+          <small class="muted">원하면 지워도 됨</small>
         </div>
-        <div class="muted">
-          현재는 숫자만 제공.
-        </div>
+        <textarea id="memoBox" placeholder="캐릭터 메모/백스토리/설정…"></textarea>
       </div>
     </div>
   </div>
 
-  <!-- 숨겨진 파일 입력(불러오기) -->
   <input type="file" id="jsonFileInput" accept="application/json" style="display:none" />
 
 <script>
 "use strict";
 
-/** ---------- seedable RNG ---------- */
+/** RNG */
 function mulberry32(seed) {
   let a = seed >>> 0;
   return function () {
@@ -359,19 +247,13 @@ function makeSeed() {
   return Math.floor(Date.now() % 2147483647);
 }
 
-/** ---------- dice ---------- */
-function rollDie(rng, sides) {
-  return Math.floor(rng() * sides) + 1;
-}
-function rollNdM(rng, n, m) {
-  let sum = 0;
-  for (let i = 0; i < n; i++) sum += rollDie(rng, m);
-  return sum;
-}
+/** dice */
+function rollDie(rng, sides) { return Math.floor(rng() * sides) + 1; }
+function rollNdM(rng, n, m) { let s = 0; for (let i=0;i<n;i++) s += rollDie(rng,m); return s; }
 
-/** ---------- config ---------- */
+/** config */
 const GROWTH_LIMIT = 120;
-const AUTO_SAVE_KEY = "coc_maker_autosave_v1";
+const AUTO_SAVE_KEY = "coc_maker_autosave_v4";
 const STATS_KEYS = ["STR","CON","SIZ","DEX","INT","APP","POW","EDU","LUCK"];
 const DETAIL_KEYS = ["BELIEF","PERSON","PLACE","THING","TRAIT"];
 
@@ -385,7 +267,6 @@ const groups = [
   { key: "POW", label: "정신력", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
   { key: "EDU", label: "교육(EDU)", fn: (rng) => (rollNdM(rng, 2, 6) + 6) * 5 },
   { key: "LUCK", label: "운", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
-
   { key: "BELIEF", label: "사상·신념 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
   { key: "PERSON", label: "중요한 사람 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
   { key: "PLACE", label: "의미 있는 장소 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
@@ -393,44 +274,22 @@ const groups = [
   { key: "TRAIT", label: "성격 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
 ];
 
-/** ---------- state ---------- */
+/** state */
 const state = {
   seed: 0,
   rolls: new Map(),
   pick: new Map(),
   isFirstGenApplied: false,
-
   scenarioCount: 0,
   growthTotal: 0,
   growthPool: 0,
-
-  skills: new Map(), // name -> { base:number, delta:number }
   log: [],
-
-  // UI flags persisted too
-  cap50: true,
-  freeApp: true,
+  memo: "",
 };
 
-function seedDefaultSkills() {
-  state.skills.clear();
-  const defaults = [
-    ["관찰력", 0],["듣기", 0],["심리학", 0],["은신", 0],["설득", 0],["말재주", 0],
-    ["위협", 0],["자료조사", 0],["도서관이용", 0],["응급처치", 0],["정신분석", 0],
-    ["역사", 0],["자연사", 0],["컴퓨터사용", 0],["전자공학", 0],
-  ];
-  for (const [name, base] of defaults) state.skills.set(name, { base: base, delta: 0 });
-}
-
-/** ---------- helpers ---------- */
-function getCap50Enabled() {
-  const el = document.getElementById("cap50");
-  return !!el && el.checked;
-}
-function isFreeAppEnabled() {
-  const el = document.getElementById("freeApp");
-  return !!el && el.checked;
-}
+/** helpers */
+function getCap50Enabled() { const el = document.getElementById("cap50"); return !!el && el.checked; }
+function isFreeAppEnabled() { const el = document.getElementById("freeApp"); return !!el && el.checked; }
 function capValue(key, v) {
   const capOn = getCap50Enabled();
   if (!capOn) return v;
@@ -441,23 +300,25 @@ function findGroupLabel(key) {
   const g = groups.find((x) => x.key === key);
   return g ? g.label : key;
 }
-function pushLog(line) {
-  const now = new Date();
-  const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
-  state.log.unshift(`[${ts}] ${line}`);
-  renderLog();
-  autoSave();
+function getSelectedValue(key) {
+  const arr = state.rolls.get(key) ?? [0,0,0];
+  const idx = state.pick.get(key) ?? 0;
+  const raw = arr[idx] ?? 0;
+  return STATS_KEYS.includes(key) ? capValue(key, raw) : raw;
 }
-function renderLog() {
-  const box = document.getElementById("logBox");
-  if (!box) return;
-  box.textContent = state.log.join("\n");
+function computeSkillBudgetText() {
+  const edu = getSelectedValue("EDU");
+  const intel = getSelectedValue("INT");
+  const job = edu * 4;
+  const hobby = intel * 2;
+  const total = job + hobby;
+  return `${total} (직업 ${job} + 흥미 ${hobby})`;
 }
-function renderSeed() {
-  const el = document.getElementById("seedView");
-  if (el) el.textContent = String(state.seed);
-}
+function renderSeed() { const el = document.getElementById("seedView"); if (el) el.textContent = String(state.seed); }
 function renderKpi() {
+  const budEl = document.getElementById("skillBudget");
+  if (budEl) budEl.textContent = computeSkillBudgetText();
+
   const totalEl = document.getElementById("growthTotal");
   const limitEl = document.getElementById("growthLimit");
   const poolEl = document.getElementById("growthPool");
@@ -467,29 +328,16 @@ function renderKpi() {
   if (poolEl) poolEl.textContent = String(state.growthPool);
   if (scEl) scEl.textContent = String(state.scenarioCount);
 }
-function getSelectedStat(key) {
-  const arr = state.rolls.get(key) ?? [0,0,0];
-  const idx = state.pick.get(key) ?? 0;
-  const raw = arr[idx] ?? 0;
-  return STATS_KEYS.includes(key) ? capValue(key, raw) : raw;
-}
-function updateOutputs() {
-  const sum = document.getElementById("outSummary");
-  const r20 = document.getElementById("outRoll20");
-  if (sum) sum.value = buildSummaryText();
-  if (r20) r20.value = buildRoll20Text();
-}
-function renderAll() {
-  renderSeed();
-  renderKpi();
-  renderStatsGrid();
-  renderSkills();
-  renderManualStats();
-  updateOutputs();
+function renderLog() { const box = document.getElementById("logBox"); if (box) box.textContent = state.log.join("\n"); }
+function pushLog(line) {
+  const now = new Date();
+  const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  state.log.unshift(`[${ts}] ${line}`);
   renderLog();
+  autoSave();
 }
 
-/** ---------- rolling ---------- */
+/** rolling */
 function doRoll(seed) {
   state.seed = seed;
   state.rolls.clear();
@@ -502,18 +350,27 @@ function doRoll(seed) {
     state.rolls.set(g.key, arr);
     state.pick.set(g.key, 0);
   }
-
   setSeedInUrl(seed);
   renderAll();
   pushLog(`3회 굴림 실행 (seed=${seed})`);
 }
-function applyFirstGeneration() {
+
+function applyFirstGen13() {
+  // ✅ 중복 적용 방지 (계속 누르면 0으로 떨어지는 현상 방지)
+  if (state.isFirstGenApplied) {
+    alert("이미 13세 적용이 되어 있어! 다시 하려면 리셋 또는 3회 굴림을 눌러줘.");
+    return;
+  }
+
+  // 13세: APP 제외 /2, EDU=45 고정
   for (const k of STATS_KEYS) {
     if (k === "EDU") {
       state.rolls.set(k, [45,45,45]);
       state.pick.set(k, 0);
       continue;
     }
+    if (k === "APP") continue;
+
     const values = state.rolls.get(k);
     if (!values) continue;
     const halved = values.map((v) => Math.floor(v / 2));
@@ -522,15 +379,12 @@ function applyFirstGeneration() {
   }
   state.isFirstGenApplied = true;
   renderAll();
-  pushLog(`첫 생성(13세) 적용: (주사위값)/2, EDU=45 고정`);
+  pushLog("첫 생성(13세) 적용: APP 제외 /2, EDU=45 고정");
 }
 
-/** ---------- growth ---------- */
+/** growth */
 function scenarioGrowthRoll() {
-  if (state.growthTotal >= GROWTH_LIMIT) {
-    alert("더 이상 성장할 수 없습니다. (최대 120점)");
-    return;
-  }
+  if (state.growthTotal >= GROWTH_LIMIT) { alert("더 이상 성장할 수 없습니다. (최대 120점)"); return; }
   const nextScenario = state.scenarioCount + 1;
   const rng = mulberry32(hash32(state.seed, nextScenario));
   const rolled = rollNdM(rng, 3, 10);
@@ -541,16 +395,11 @@ function scenarioGrowthRoll() {
   state.growthTotal += gained;
   state.growthPool += gained;
 
-  renderKpi();
-  renderSkills();
-  updateOutputs();
-  pushLog(`${state.scenarioCount}회차 성장: 3D10=${rolled} → +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT}, 풀 ${state.growthPool})`);
+  renderKpi(); updateOutputs(); autoSave();
+  pushLog(`${state.scenarioCount}회차 성장: 3D10=${rolled} → +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT})`);
 }
 function scenarioGrowthManual() {
-  if (state.growthTotal >= GROWTH_LIMIT) {
-    alert("더 이상 성장할 수 없습니다. (최대 120점)");
-    return;
-  }
+  if (state.growthTotal >= GROWTH_LIMIT) { alert("더 이상 성장할 수 없습니다. (최대 120점)"); return; }
   const raw = prompt("수동으로 추가할 성장 포인트를 입력해줘.", "10");
   if (raw === null) return;
   const n = Number(raw);
@@ -561,66 +410,17 @@ function scenarioGrowthManual() {
   state.growthTotal += gained;
   state.growthPool += gained;
 
-  renderKpi();
-  renderSkills();
-  updateOutputs();
-  pushLog(`성장 수동추가: +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT}, 풀 ${state.growthPool})`);
+  renderKpi(); updateOutputs(); autoSave();
+  pushLog(`성장 수동추가: +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT})`);
 }
 
-/** ---------- skills ---------- */
-function getSkillCap() { return getCap50Enabled() ? 50 : 9999; }
-function addSkill(name, base) {
-  const trimmed = name.trim();
-  if (!trimmed) return;
-  if (state.skills.has(trimmed)) { alert("이미 있는 기능명이야."); return; }
-  const cap = getSkillCap();
-  const b = Math.max(0, Math.min(Math.floor(base), cap));
-  state.skills.set(trimmed, { base: b, delta: 0 });
-  renderSkills(); updateOutputs(); pushLog(`기능 추가: ${trimmed} (기본 ${b})`);
-}
-function removeSkill(name) {
-  if (!state.skills.has(name)) return;
-  state.skills.delete(name);
-  renderSkills(); updateOutputs(); pushLog(`기능 삭제: ${name}`);
-}
-function clearSkillDeltas() {
-  for (const v of state.skills.values()) v.delta = 0;
-  renderSkills();
-  autoSave();
-}
-function applySkillDeltas() {
-  if (state.growthPool <= 0) { alert("배분할 성장 포인트 풀이 없어."); return; }
-
-  let spent = 0;
-  for (const v of state.skills.values()) spent += Math.max(0, Math.floor(v.delta));
-  if (spent <= 0) { alert("증가값이 없어."); return; }
-  if (spent > state.growthPool) { alert(`증가 합계(${spent})가 풀(${state.growthPool})을 초과했어.`); return; }
-
-  const cap = getSkillCap();
-  for (const v of state.skills.values()) {
-    const d = Math.max(0, Math.floor(v.delta));
-    if (d <= 0) continue;
-    const before = v.base;
-    let after = before + d;
-    if (getCap50Enabled()) after = Math.min(after, cap);
-    const applied = after - before;
-    if (applied < d) spent -= (d - applied);
-    v.base = after;
-    v.delta = 0;
-  }
-
-  state.growthPool -= spent;
-  renderKpi(); renderSkills(); updateOutputs();
-  pushLog(`기능 배분 적용: -${spent} (풀 ${state.growthPool})`);
-}
-
-/** ---------- UI render ---------- */
+/** UI render */
 function renderStatsGrid() {
   const grid = document.getElementById("statsGrid");
   if (!grid) return;
   grid.innerHTML = "";
-  const ordered = [...STATS_KEYS, ...DETAIL_KEYS];
 
+  const ordered = [...STATS_KEYS, ...DETAIL_KEYS];
   for (const key of ordered) {
     const label = findGroupLabel(key);
     const values = state.rolls.get(key) ?? [0,0,0];
@@ -648,8 +448,8 @@ function renderStatsGrid() {
       radio.checked = idx === picked;
       radio.addEventListener("change", () => {
         state.pick.set(key, idx);
+        renderKpi();
         updateOutputs();
-        renderManualStats();
         autoSave();
       });
 
@@ -661,35 +461,38 @@ function renderStatsGrid() {
     line.appendChild(name);
     line.appendChild(choices);
 
-    // APP 직접 조정 버튼 (자유조정 ON일 때 유용)
+    // APP 직접 조정(선택)
     if (key === "APP") {
       const box = document.createElement("div");
-      box.className = "inline";
+      box.style.display = "flex";
+      box.style.gap = "8px";
       box.style.justifyContent = "flex-end";
 
-      const currentApp = getSelectedStat("APP");
       const input = document.createElement("input");
       input.type = "number";
       input.min = "0";
-      input.max = (isFreeAppEnabled()) ? "999" : (getCap50Enabled() ? "50" : "999");
-      input.value = String(currentApp);
+      input.max = isFreeAppEnabled() ? "999" : (getCap50Enabled() ? "50" : "999");
+      input.value = String(getSelectedValue("APP"));
       input.style.width = "110px";
 
       const btn = document.createElement("button");
-      btn.textContent = "APP 직접적용";
+      btn.textContent = "APP 적용";
       btn.addEventListener("click", () => {
         const n = Number(input.value);
         if (!Number.isFinite(n) || n < 0) { alert("APP 값이 올바르지 않아."); return; }
         const v = Math.floor(n);
-        const applied = (isFreeAppEnabled()) ? v : capValue("APP", v);
-        const pickedIdx = state.pick.get("APP") ?? 0;
+        const applied = isFreeAppEnabled() ? v : capValue("APP", v);
+
+        const idx = state.pick.get("APP") ?? 0;
         const arr = state.rolls.get("APP") ?? [0,0,0];
-        arr[pickedIdx] = applied;
+        arr[idx] = applied;
         state.rolls.set("APP", arr);
+
+        renderKpi();
         updateOutputs();
-        renderManualStats();
         autoSave();
         pushLog(`APP 직접 적용: ${applied}`);
+        renderStatsGrid();
       });
 
       box.appendChild(input);
@@ -701,232 +504,134 @@ function renderStatsGrid() {
   }
 }
 
-function renderSkills() {
-  const body = document.getElementById("skillsBody");
-  if (!body) return;
-  body.innerHTML = "";
-
-  const sorted = Array.from(state.skills.entries()).sort((a,b) => a[0].localeCompare(b[0], "ko"));
-  const cap = getSkillCap();
-
-  for (const [name, v] of sorted) {
-    const tr = document.createElement("tr");
-
-    const tdName = document.createElement("td");
-    tdName.textContent = name;
-
-    const tdBase = document.createElement("td");
-    tdBase.className = "num";
-    tdBase.textContent = String(v.base);
-
-    const tdDelta = document.createElement("td");
-    tdDelta.className = "num";
-    const input = document.createElement("input");
-    input.type = "number";
-    input.min = "0";
-    input.max = String(Math.max(0, cap - v.base));
-    input.value = String(v.delta);
-    input.addEventListener("input", () => {
-      const n = Number(input.value);
-      v.delta = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
-      autoSave();
-    });
-    tdDelta.appendChild(input);
-
-    const tdApply = document.createElement("td");
-    tdApply.className = "num";
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "삭제";
-    delBtn.addEventListener("click", () => removeSkill(name));
-    tdApply.appendChild(delBtn);
-
-    tr.appendChild(tdName);
-    tr.appendChild(tdBase);
-    tr.appendChild(tdDelta);
-    tr.appendChild(tdApply);
-
-    body.appendChild(tr);
-  }
-}
-
-function renderManualStats() {
-  const body = document.getElementById("manualStatsBody");
-  if (!body) return;
-  body.innerHTML = "";
-
-  for (const k of STATS_KEYS) {
-    const tr = document.createElement("tr");
-
-    const tdK = document.createElement("td");
-    tdK.textContent = findGroupLabel(k);
-
-    const tdCur = document.createElement("td");
-    tdCur.className = "num";
-    tdCur.textContent = String(getSelectedStat(k));
-
-    const tdIn = document.createElement("td");
-    tdIn.className = "num";
-    const inp = document.createElement("input");
-    inp.type = "number";
-    inp.min = "0";
-    inp.max = (k === "APP" && isFreeAppEnabled()) ? "999" : (getCap50Enabled() ? "50" : "999");
-    inp.value = String(getSelectedStat(k));
-    inp.dataset.key = k;
-    inp.addEventListener("input", () => autoSave());
-    tdIn.appendChild(inp);
-
-    tr.appendChild(tdK);
-    tr.appendChild(tdCur);
-    tr.appendChild(tdIn);
-    body.appendChild(tr);
-  }
-}
-function applyManualStats() {
-  const body = document.getElementById("manualStatsBody");
-  if (!body) return;
-
-  const inputs = Array.from(body.querySelectorAll("input[type='number']"));
-  for (const inp of inputs) {
-    const key = String(inp.dataset.key || "");
-    if (!STATS_KEYS.includes(key)) continue;
-
-    const n = Number(inp.value);
-    if (!Number.isFinite(n) || n < 0) continue;
-
-    const v = Math.floor(n);
-    const applied = (key === "APP" && isFreeAppEnabled()) ? v : capValue(key, v);
-
-    const idx = state.pick.get(key) ?? 0;
-    const arr = state.rolls.get(key) ?? [0,0,0];
-    arr[idx] = applied;
-    state.rolls.set(key, arr);
-  }
-
-  renderStatsGrid();
-  renderManualStats();
-  updateOutputs();
-  autoSave();
-  pushLog(`수동 특성치 적용`);
-}
-
-/** ---------- outputs ---------- */
 function buildSummaryText() {
   const lines = [];
-  lines.push(`탐사자 요약`);
+  lines.push("탐사자 요약");
   lines.push(`seed: ${state.seed}`);
-  if (state.isFirstGenApplied) lines.push(`첫 생성(13세) 규칙: 적용됨`);
+  if (state.isFirstGenApplied) lines.push("첫 생성(13세): APP 제외 /2, EDU=45 고정");
+  lines.push(`기능점수 예산: ${computeSkillBudgetText()}`);
   lines.push("");
 
-  lines.push(`[특성치]`);
-  for (const k of STATS_KEYS) lines.push(`${findGroupLabel(k)}: ${getSelectedStat(k)}`);
+  lines.push("[특성치]");
+  for (const k of STATS_KEYS) lines.push(`${findGroupLabel(k)}: ${getSelectedValue(k)}`);
 
   lines.push("");
-  lines.push(`[세부사항] (선택값: 1~10)`);
-  for (const k of DETAIL_KEYS) lines.push(`${findGroupLabel(k)}: ${getSelectedStat(k)}`);
+  lines.push("[세부사항] (1~10)");
+  for (const k of DETAIL_KEYS) lines.push(`${findGroupLabel(k)}: ${getSelectedValue(k)}`);
 
   lines.push("");
-  lines.push(`[성장]`);
+  lines.push("[성장]");
   lines.push(`회차: ${state.scenarioCount}`);
   lines.push(`누적 성장: ${state.growthTotal}/${GROWTH_LIMIT}`);
-  lines.push(`배분 풀: ${state.growthPool}`);
+  lines.push(`(참고) 성장으로 얻은 기능점수 누적 한도: 120`);
   lines.push("");
 
-  lines.push(`[기능]`);
-  const sorted = Array.from(state.skills.entries()).sort((a,b) => a[0].localeCompare(b[0], "ko"));
-  for (const [name, v] of sorted) lines.push(`${name}: ${v.base}`);
+  if (state.memo.trim().length > 0) {
+    lines.push("[메모]");
+    lines.push(state.memo.trim());
+  }
 
   return lines.join("\n");
 }
 function buildRoll20Text() {
   const parts = [];
   parts.push(`탐사자 만들기 결과 (seed=${state.seed})`);
-  parts.push(`특성치: STR ${getSelectedStat("STR")} / CON ${getSelectedStat("CON")} / SIZ ${getSelectedStat("SIZ")} / DEX ${getSelectedStat("DEX")} / INT ${getSelectedStat("INT")} / APP ${getSelectedStat("APP")} / POW ${getSelectedStat("POW")} / EDU ${getSelectedStat("EDU")} / LUCK ${getSelectedStat("LUCK")}`);
-  parts.push(`세부(1d10): 신념 ${getSelectedStat("BELIEF")}, 사람 ${getSelectedStat("PERSON")}, 장소 ${getSelectedStat("PLACE")}, 물건 ${getSelectedStat("THING")}, 성격 ${getSelectedStat("TRAIT")}`);
-  parts.push(`성장: ${state.scenarioCount}회차, 누적 ${state.growthTotal}/${GROWTH_LIMIT}, 풀 ${state.growthPool}`);
+  parts.push(`기능점수 예산: ${computeSkillBudgetText()}`);
+  parts.push(
+    `특성치: STR ${getSelectedValue("STR")} / CON ${getSelectedValue("CON")} / SIZ ${getSelectedValue("SIZ")} / DEX ${getSelectedValue("DEX")} / INT ${getSelectedValue("INT")} / APP ${getSelectedValue("APP")} / POW ${getSelectedValue("POW")} / EDU ${getSelectedValue("EDU")} / LUCK ${getSelectedValue("LUCK")}`
+  );
+  parts.push(
+    `세부(1d10): 신념 ${getSelectedValue("BELIEF")}, 사람 ${getSelectedValue("PERSON")}, 장소 ${getSelectedValue("PLACE")}, 물건 ${getSelectedValue("THING")}, 성격 ${getSelectedValue("TRAIT")}`
+  );
+  parts.push(`성장: ${state.scenarioCount}회차, 누적 ${state.growthTotal}/${GROWTH_LIMIT}`);
+  if (state.memo.trim().length > 0) parts.push(`메모: ${state.memo.trim().replace(/\n/g, " / ")}`);
   return parts.join("\n");
 }
+function updateOutputs() {
+  const sum = document.getElementById("outSummary");
+  const r20 = document.getElementById("outRoll20");
+  if (sum) sum.value = buildSummaryText();
+  if (r20) r20.value = buildRoll20Text();
+}
 
-/** ---------- copy / print ---------- */
 async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    alert("복사 완료!");
-  } catch {
+  try { await navigator.clipboard.writeText(text); alert("복사 완료!"); }
+  catch {
     const ta = document.createElement("textarea");
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    ta.remove();
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); ta.remove();
     alert("복사 완료!");
   }
 }
 
-/** ---------- JSON Save/Load + AutoSave ---------- */
-function mapsToObj() {
-  // Map -> plain object
-  const rollsObj = Object.create(null);
-  for (const [k, v] of state.rolls.entries()) rollsObj[k] = v;
-
-  const pickObj = Object.create(null);
-  for (const [k, v] of state.pick.entries()) pickObj[k] = v;
-
-  const skillsObj = Object.create(null);
-  for (const [name, v] of state.skills.entries()) {
-    skillsObj[name] = { base: v.base, delta: v.delta };
-  }
-
-  return { rollsObj, pickObj, skillsObj };
-}
-function objToMaps(payload) {
-  state.rolls.clear();
-  state.pick.clear();
-  state.skills.clear();
-
-  const rollsObj = payload.rolls ?? payload.rollsObj ?? {};
-  const pickObj = payload.pick ?? payload.pickObj ?? {};
-  const skillsObj = payload.skills ?? payload.skillsObj ?? {};
-
-  for (const k of Object.keys(rollsObj)) {
-    const arr = rollsObj[k];
-    if (Array.isArray(arr) && arr.length === 3) state.rolls.set(k, [Number(arr[0])||0, Number(arr[1])||0, Number(arr[2])||0]);
-  }
-  for (const k of Object.keys(pickObj)) {
-    const idx = Number(pickObj[k]);
-    state.pick.set(k, Number.isFinite(idx) ? Math.max(0, Math.min(2, Math.floor(idx))) : 0);
-  }
-  for (const name of Object.keys(skillsObj)) {
-    const v = skillsObj[name];
-    const base = Number(v?.base);
-    const delta = Number(v?.delta);
-    state.skills.set(name, {
-      base: Number.isFinite(base) ? Math.max(0, Math.floor(base)) : 0,
-      delta: Number.isFinite(delta) ? Math.max(0, Math.floor(delta)) : 0,
-    });
-  }
-}
-
+/** JSON + autosave */
 function exportJsonObject() {
-  const { rollsObj, pickObj, skillsObj } = mapsToObj();
+  const rolls = Object.create(null);
+  for (const [k, v] of state.rolls.entries()) rolls[k] = v;
+
+  const pick = Object.create(null);
+  for (const [k, v] of state.pick.entries()) pick[k] = v;
+
   return {
-    version: 1,
+    version: 4,
     savedAt: new Date().toISOString(),
     seed: state.seed,
     isFirstGenApplied: state.isFirstGenApplied,
     scenarioCount: state.scenarioCount,
     growthTotal: state.growthTotal,
     growthPool: state.growthPool,
-    ui: {
-      cap50: getCap50Enabled(),
-      freeApp: isFreeAppEnabled(),
-    },
-    rolls: rollsObj,
-    pick: pickObj,
-    skills: skillsObj,
+    ui: { cap50: getCap50Enabled(), freeApp: isFreeAppEnabled() },
+    rolls, pick,
     log: state.log,
+    memo: state.memo,
   };
 }
+function validateImported(obj) {
+  if (!obj || typeof obj !== "object") return "JSON 형식이 올바르지 않아.";
+  if (typeof obj.seed !== "number" || !Number.isFinite(obj.seed)) return "seed가 없어.";
+  if (!obj.rolls || typeof obj.rolls !== "object") return "rolls가 없어.";
+  if (!obj.pick || typeof obj.pick !== "object") return "pick이 없어.";
+  return null;
+}
+function loadFromObject(obj) {
+  const err = validateImported(obj);
+  if (err) { alert(err); return; }
 
+  state.seed = Math.floor(obj.seed);
+  state.isFirstGenApplied = !!obj.isFirstGenApplied;
+  state.scenarioCount = Math.max(0, Math.floor(Number(obj.scenarioCount) || 0));
+  state.growthTotal = Math.max(0, Math.floor(Number(obj.growthTotal) || 0));
+  state.growthPool = Math.max(0, Math.floor(Number(obj.growthPool) || 0));
+  state.log = Array.isArray(obj.log) ? obj.log.map(String) : [];
+  state.memo = typeof obj.memo === "string" ? obj.memo : "";
+
+  const capEl = document.getElementById("cap50");
+  const appEl = document.getElementById("freeApp");
+  if (capEl) capEl.checked = !!obj.ui?.cap50;
+  if (appEl) appEl.checked = !!obj.ui?.freeApp;
+
+  state.rolls.clear();
+  state.pick.clear();
+
+  for (const k of Object.keys(obj.rolls)) {
+    const arr = obj.rolls[k];
+    if (Array.isArray(arr) && arr.length === 3) {
+      state.rolls.set(k, [Number(arr[0])||0, Number(arr[1])||0, Number(arr[2])||0]);
+    }
+  }
+  for (const k of Object.keys(obj.pick)) {
+    const idx = Number(obj.pick[k]);
+    state.pick.set(k, Number.isFinite(idx) ? Math.max(0, Math.min(2, Math.floor(idx))) : 0);
+  }
+
+  const memoEl = document.getElementById("memoBox");
+  if (memoEl) memoEl.value = state.memo;
+
+  setSeedInUrl(state.seed);
+  renderAll();
+  autoSave();
+  pushLog("JSON 불러오기 완료");
+}
 function downloadJson() {
   const obj = exportJsonObject();
   const text = JSON.stringify(obj, null, 2);
@@ -949,130 +654,87 @@ function downloadJson() {
 
   pushLog("JSON 저장(다운로드)");
 }
-
-function validateImported(obj) {
-  if (!obj || typeof obj !== "object") return "JSON 형식이 올바르지 않아.";
-  if (typeof obj.seed !== "number" || !Number.isFinite(obj.seed)) return "seed가 없어.";
-  if (typeof obj.scenarioCount !== "number" || obj.scenarioCount < 0) return "scenarioCount가 이상해.";
-  if (typeof obj.growthTotal !== "number" || obj.growthTotal < 0) return "growthTotal이 이상해.";
-  if (typeof obj.growthPool !== "number" || obj.growthPool < 0) return "growthPool이 이상해.";
-  if (!obj.rolls || typeof obj.rolls !== "object") return "rolls가 없어.";
-  if (!obj.pick || typeof obj.pick !== "object") return "pick이 없어.";
-  if (!obj.skills || typeof obj.skills !== "object") return "skills가 없어.";
-  return null;
-}
-
-function loadFromObject(obj) {
-  const err = validateImported(obj);
-  if (err) {
-    alert(err);
-    return;
-  }
-
-  state.seed = Math.floor(obj.seed);
-  state.isFirstGenApplied = !!obj.isFirstGenApplied;
-  state.scenarioCount = Math.max(0, Math.floor(obj.scenarioCount));
-  state.growthTotal = Math.max(0, Math.floor(obj.growthTotal));
-  state.growthPool = Math.max(0, Math.floor(obj.growthPool));
-  state.log = Array.isArray(obj.log) ? obj.log.map(String) : [];
-
-  // UI flags
-  const cap50 = !!obj.ui?.cap50;
-  const freeApp = !!obj.ui?.freeApp;
-  const capEl = document.getElementById("cap50");
-  const appEl = document.getElementById("freeApp");
-  if (capEl) capEl.checked = cap50;
-  if (appEl) appEl.checked = freeApp;
-
-  objToMaps(obj);
-
-  setSeedInUrl(state.seed);
-  renderAll();
-  autoSave();
-  pushLog("JSON 불러오기 완료");
-}
-
 function autoSave() {
-  try {
-    const obj = exportJsonObject();
-    localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(obj));
-  } catch {
-    // 저장 실패(스토리지 제한 등)면 조용히 무시
-  }
+  try { localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(exportJsonObject())); }
+  catch { /* ignore */ }
 }
-
 function loadAutoSaveIfAny() {
   try {
     const raw = localStorage.getItem(AUTO_SAVE_KEY);
     if (!raw) return false;
     const obj = JSON.parse(raw);
-    // auto-save는 로그에 또 로그 찍지 않게, loadFromObject의 pushLog는 쓰지 않음
     const err = validateImported(obj);
     if (err) return false;
 
     state.seed = Math.floor(obj.seed);
     state.isFirstGenApplied = !!obj.isFirstGenApplied;
-    state.scenarioCount = Math.max(0, Math.floor(obj.scenarioCount));
-    state.growthTotal = Math.max(0, Math.floor(obj.growthTotal));
-    state.growthPool = Math.max(0, Math.floor(obj.growthPool));
+    state.scenarioCount = Math.max(0, Math.floor(Number(obj.scenarioCount) || 0));
+    state.growthTotal = Math.max(0, Math.floor(Number(obj.growthTotal) || 0));
+    state.growthPool = Math.max(0, Math.floor(Number(obj.growthPool) || 0));
     state.log = Array.isArray(obj.log) ? obj.log.map(String) : [];
+    state.memo = typeof obj.memo === "string" ? obj.memo : "";
 
     const capEl = document.getElementById("cap50");
     const appEl = document.getElementById("freeApp");
     if (capEl) capEl.checked = !!obj.ui?.cap50;
     if (appEl) appEl.checked = !!obj.ui?.freeApp;
 
-    objToMaps(obj);
+    state.rolls.clear();
+    state.pick.clear();
+    for (const k of Object.keys(obj.rolls)) {
+      const arr = obj.rolls[k];
+      if (Array.isArray(arr) && arr.length === 3) state.rolls.set(k, [Number(arr[0])||0, Number(arr[1])||0, Number(arr[2])||0]);
+    }
+    for (const k of Object.keys(obj.pick)) {
+      const idx = Number(obj.pick[k]);
+      state.pick.set(k, Number.isFinite(idx) ? Math.max(0, Math.min(2, Math.floor(idx))) : 0);
+    }
+
+    const memoEl = document.getElementById("memoBox");
+    if (memoEl) memoEl.value = state.memo;
+
     setSeedInUrl(state.seed);
     renderAll();
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
-
 function clearAutoSave() {
-  try {
-    localStorage.removeItem(AUTO_SAVE_KEY);
-    alert("자동저장 데이터를 삭제했어.");
-  } catch {
-    alert("자동저장 삭제에 실패했어.");
-  }
+  try { localStorage.removeItem(AUTO_SAVE_KEY); alert("자동저장 삭제 완료"); }
+  catch { alert("자동저장 삭제 실패"); }
 }
 
-/** ---------- reset ---------- */
+/** render all */
+function renderAll() {
+  renderSeed();
+  renderKpi();
+  renderStatsGrid();
+  updateOutputs();
+  renderLog();
+  autoSave();
+}
+
+/** reset */
 function resetAll() {
   const seed = parseSeed() ?? makeSeed();
-  state.rolls.clear();
-  state.pick.clear();
+  state.rolls.clear(); state.pick.clear();
   state.isFirstGenApplied = false;
   state.scenarioCount = 0;
   state.growthTotal = 0;
   state.growthPool = 0;
-  seedDefaultSkills();
   state.log = [];
+  state.memo = "";
+  const memoEl = document.getElementById("memoBox");
+  if (memoEl) memoEl.value = "";
   doRoll(seed);
   pushLog("전체 리셋");
 }
 
-/** ---------- wire up ---------- */
+/** wire */
 document.getElementById("rollBtn").addEventListener("click", () => doRoll(makeSeed()));
-document.getElementById("firstGenBtn").addEventListener("click", () => applyFirstGeneration());
+document.getElementById("firstGenBtn").addEventListener("click", () => applyFirstGen13());
 document.getElementById("growthRollBtn").addEventListener("click", () => scenarioGrowthRoll());
 document.getElementById("growthManualBtn").addEventListener("click", () => scenarioGrowthManual());
 document.getElementById("resetBtn").addEventListener("click", () => resetAll());
-
-document.getElementById("applySkillBtn").addEventListener("click", () => applySkillDeltas());
-document.getElementById("clearDeltaBtn").addEventListener("click", () => clearSkillDeltas());
-document.getElementById("addSkillBtn").addEventListener("click", () => {
-  const nameEl = document.getElementById("newSkillName");
-  const baseEl = document.getElementById("newSkillBase");
-  const name = nameEl ? String(nameEl.value) : "";
-  const base = baseEl ? Number(baseEl.value) : 0;
-  addSkill(name, base);
-  if (nameEl) nameEl.value = "";
-});
-document.getElementById("applyManualStatsBtn").addEventListener("click", () => applyManualStats());
 
 document.getElementById("copySummaryBtn").addEventListener("click", async () => {
   const el = document.getElementById("outSummary");
@@ -1084,15 +746,15 @@ document.getElementById("copyRoll20Btn").addEventListener("click", async () => {
 });
 document.getElementById("printBtn").addEventListener("click", () => window.print());
 
-document.getElementById("cap50").addEventListener("change", () => {
-  renderStatsGrid(); renderSkills(); renderManualStats(); updateOutputs();
+document.getElementById("cap50").addEventListener("change", () => { renderAll(); pushLog(`특성 최대 50: ${getCap50Enabled() ? "ON" : "OFF"}`); });
+document.getElementById("freeApp").addEventListener("change", () => { renderAll(); pushLog(`APP 자유 조정: ${isFreeAppEnabled() ? "ON" : "OFF"}`); });
+
+/** memo autosave */
+document.getElementById("memoBox").addEventListener("input", (ev) => {
+  const t = ev.target;
+  state.memo = typeof t.value === "string" ? t.value : "";
+  updateOutputs();
   autoSave();
-  pushLog(`상한 50 토글: ${getCap50Enabled() ? "ON" : "OFF"}`);
-});
-document.getElementById("freeApp").addEventListener("change", () => {
-  renderStatsGrid(); renderManualStats(); updateOutputs();
-  autoSave();
-  pushLog(`APP 자유 조정: ${isFreeAppEnabled() ? "ON" : "OFF"}`);
 });
 
 /** JSON buttons */
@@ -1118,13 +780,11 @@ document.getElementById("jsonFileInput").addEventListener("change", async (ev) =
 });
 document.getElementById("clearAutoSaveBtn").addEventListener("click", () => clearAutoSave());
 
-/** ---------- init ---------- */
+/** init */
 (function init() {
-  // auto-save가 있으면 복원, 없으면 기본 초기화
   const restored = loadAutoSaveIfAny();
   if (restored) return;
 
-  seedDefaultSkills();
   const seed = parseSeed() ?? makeSeed();
   setSeedInUrl(seed);
   doRoll(seed);
