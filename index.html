@@ -16,13 +16,13 @@
     }
     *{ box-sizing:border-box; }
     body{
-      margin:24px;
+      margin:16px;
       background:var(--bg);
       color:var(--text);
       font-family: system-ui, -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
     }
     .wrap{ max-width: 980px; margin:0 auto; }
-    h1{ margin: 0 0 12px; font-size: 22px; }
+    h1{ margin: 0 0 12px; font-size: 20px; }
     .topbar{
       display:flex; gap:10px; flex-wrap:wrap; align-items:center;
       margin-bottom: 14px;
@@ -31,6 +31,7 @@
       border:0; border-radius: 12px; padding: 10px 14px;
       cursor:pointer; font-weight: 800;
       background:#eef2ff;
+      white-space:nowrap;
     }
     button.primary{ background:#111827; color:#fff; }
     button.warn{ background:#fee2e2; }
@@ -41,6 +42,7 @@
       border-radius: 999px; padding: 8px 12px;
       background: rgba(255,255,255,.7);
       font-size: 13px;
+      white-space: nowrap;
     }
     .pill input{ margin:0; }
     .row{ display:flex; gap:16px; flex-wrap:wrap; }
@@ -58,6 +60,7 @@
       font-weight: 900;
       margin: 0 0 10px;
       display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+      flex-wrap: wrap;
     }
     .section-title small{ font-weight:600; color:var(--muted); }
     .grid{ display:grid; grid-template-columns: 1fr; gap:10px; }
@@ -67,6 +70,7 @@
       border-radius: 12px;
       border:1px solid rgba(0,0,0,.06);
       background:#fff;
+      flex-wrap: wrap;
     }
     .stat-name{ font-weight: 900; width: 160px; }
     .choices{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
@@ -86,7 +90,7 @@
       border-radius: 14px;
       border:1px solid rgba(0,0,0,.12);
       padding: 10px;
-      min-height: 170px;
+      min-height: 160px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 12px;
       background:#fbfbff;
@@ -101,11 +105,11 @@
       border-radius: 12px;
       padding: 10px 12px;
       background:#fff;
+      min-width: 160px;
     }
     .kpi .label{ color:var(--muted); font-size:12px; }
     .kpi .value{ font-weight: 950; font-size: 18px; }
     .log{
-      margin-top: 10px;
       border:1px solid rgba(0,0,0,.10);
       border-radius: 12px;
       padding: 10px 12px;
@@ -116,6 +120,29 @@
       line-height: 1.45;
       white-space: pre-wrap;
     }
+
+    /* ✅ 모바일 최적화 */
+    @media (max-width: 720px){
+      body{ margin:12px; }
+      h1{ font-size: 18px; }
+      .card{ padding: 12px; }
+      .row{ gap:12px; }
+      .wide, .side{ flex: 1 1 100%; }
+      .stat-name{ width: 100%; }
+      .choices{ justify-content:flex-start; }
+      button{ padding: 10px 12px; border-radius: 12px; }
+      .pill{ padding: 7px 10px; font-size: 12px; }
+      textarea{ min-height: 150px; }
+      .kpi .box{ flex: 1 1 calc(50% - 10px); }
+    }
+
+    @media (max-width: 420px){
+      .kpi .box{ flex: 1 1 100%; }
+      .topbar{ gap:8px; }
+      button{ width: 100%; }
+      .pill{ width: 100%; justify-content:space-between; }
+    }
+
     @media print{
       body{ background:#fff; margin: 12mm; }
       .topbar, .muted, .pill, button{ display:none !important; }
@@ -137,7 +164,6 @@
       <button id="saveJsonBtn">💾 JSON 저장</button>
       <button id="loadJsonBtn">📂 JSON 불러오기</button>
       <button id="clearAutoSaveBtn" class="warn">🗑️ 자동저장 삭제</button>
-
       <button id="resetBtn" class="warn">🧹 리셋</button>
 
       <span class="pill"><b>seed</b> <span id="seedView">-</span></span>
@@ -153,7 +179,7 @@
       <div class="card wide">
         <div class="section-title">
           <span>특성치 / 세부사항 (3회 후보 선택)</span>
-          <small class="muted">첫 생성(13세): APP 제외 /2, EDU=45 고정 (중복 적용 방지)</small>
+          <small>첫 생성(13세): APP 제외 /2, EDU=45 고정 (중복 적용 방지)</small>
         </div>
 
         <div class="grid" id="statsGrid"></div>
@@ -196,12 +222,6 @@
           <small class="muted">획득 기록</small>
         </div>
         <div class="log" id="logBox"></div>
-
-        <div style="margin-top:14px;" class="section-title">
-          <span>메모</span>
-          <small class="muted">원하면 지워도 됨</small>
-        </div>
-        <textarea id="memoBox" placeholder="캐릭터 메모/백스토리/설정…"></textarea>
       </div>
     </div>
   </div>
@@ -253,7 +273,7 @@ function rollNdM(rng, n, m) { let s = 0; for (let i=0;i<n;i++) s += rollDie(rng,
 
 /** config */
 const GROWTH_LIMIT = 120;
-const AUTO_SAVE_KEY = "coc_maker_autosave_v4";
+const AUTO_SAVE_KEY = "coc_maker_autosave_v5";
 const STATS_KEYS = ["STR","CON","SIZ","DEX","INT","APP","POW","EDU","LUCK"];
 const DETAIL_KEYS = ["BELIEF","PERSON","PLACE","THING","TRAIT"];
 
@@ -284,7 +304,6 @@ const state = {
   growthTotal: 0,
   growthPool: 0,
   log: [],
-  memo: "",
 };
 
 /** helpers */
@@ -356,12 +375,10 @@ function doRoll(seed) {
 }
 
 function applyFirstGen13() {
-  // ✅ 중복 적용 방지 (계속 누르면 0으로 떨어지는 현상 방지)
   if (state.isFirstGenApplied) {
     alert("이미 13세 적용이 되어 있어! 다시 하려면 리셋 또는 3회 굴림을 눌러줘.");
     return;
   }
-
   // 13세: APP 제외 /2, EDU=45 고정
   for (const k of STATS_KEYS) {
     if (k === "EDU") {
@@ -461,7 +478,6 @@ function renderStatsGrid() {
     line.appendChild(name);
     line.appendChild(choices);
 
-    // APP 직접 조정(선택)
     if (key === "APP") {
       const box = document.createElement("div");
       box.style.display = "flex";
@@ -524,12 +540,6 @@ function buildSummaryText() {
   lines.push(`회차: ${state.scenarioCount}`);
   lines.push(`누적 성장: ${state.growthTotal}/${GROWTH_LIMIT}`);
   lines.push(`(참고) 성장으로 얻은 기능점수 누적 한도: 120`);
-  lines.push("");
-
-  if (state.memo.trim().length > 0) {
-    lines.push("[메모]");
-    lines.push(state.memo.trim());
-  }
 
   return lines.join("\n");
 }
@@ -544,7 +554,6 @@ function buildRoll20Text() {
     `세부(1d10): 신념 ${getSelectedValue("BELIEF")}, 사람 ${getSelectedValue("PERSON")}, 장소 ${getSelectedValue("PLACE")}, 물건 ${getSelectedValue("THING")}, 성격 ${getSelectedValue("TRAIT")}`
   );
   parts.push(`성장: ${state.scenarioCount}회차, 누적 ${state.growthTotal}/${GROWTH_LIMIT}`);
-  if (state.memo.trim().length > 0) parts.push(`메모: ${state.memo.trim().replace(/\n/g, " / ")}`);
   return parts.join("\n");
 }
 function updateOutputs() {
@@ -573,7 +582,7 @@ function exportJsonObject() {
   for (const [k, v] of state.pick.entries()) pick[k] = v;
 
   return {
-    version: 4,
+    version: 5,
     savedAt: new Date().toISOString(),
     seed: state.seed,
     isFirstGenApplied: state.isFirstGenApplied,
@@ -583,7 +592,6 @@ function exportJsonObject() {
     ui: { cap50: getCap50Enabled(), freeApp: isFreeAppEnabled() },
     rolls, pick,
     log: state.log,
-    memo: state.memo,
   };
 }
 function validateImported(obj) {
@@ -603,7 +611,6 @@ function loadFromObject(obj) {
   state.growthTotal = Math.max(0, Math.floor(Number(obj.growthTotal) || 0));
   state.growthPool = Math.max(0, Math.floor(Number(obj.growthPool) || 0));
   state.log = Array.isArray(obj.log) ? obj.log.map(String) : [];
-  state.memo = typeof obj.memo === "string" ? obj.memo : "";
 
   const capEl = document.getElementById("cap50");
   const appEl = document.getElementById("freeApp");
@@ -623,9 +630,6 @@ function loadFromObject(obj) {
     const idx = Number(obj.pick[k]);
     state.pick.set(k, Number.isFinite(idx) ? Math.max(0, Math.min(2, Math.floor(idx))) : 0);
   }
-
-  const memoEl = document.getElementById("memoBox");
-  if (memoEl) memoEl.value = state.memo;
 
   setSeedInUrl(state.seed);
   renderAll();
@@ -672,7 +676,6 @@ function loadAutoSaveIfAny() {
     state.growthTotal = Math.max(0, Math.floor(Number(obj.growthTotal) || 0));
     state.growthPool = Math.max(0, Math.floor(Number(obj.growthPool) || 0));
     state.log = Array.isArray(obj.log) ? obj.log.map(String) : [];
-    state.memo = typeof obj.memo === "string" ? obj.memo : "";
 
     const capEl = document.getElementById("cap50");
     const appEl = document.getElementById("freeApp");
@@ -689,9 +692,6 @@ function loadAutoSaveIfAny() {
       const idx = Number(obj.pick[k]);
       state.pick.set(k, Number.isFinite(idx) ? Math.max(0, Math.min(2, Math.floor(idx))) : 0);
     }
-
-    const memoEl = document.getElementById("memoBox");
-    if (memoEl) memoEl.value = state.memo;
 
     setSeedInUrl(state.seed);
     renderAll();
@@ -722,9 +722,6 @@ function resetAll() {
   state.growthTotal = 0;
   state.growthPool = 0;
   state.log = [];
-  state.memo = "";
-  const memoEl = document.getElementById("memoBox");
-  if (memoEl) memoEl.value = "";
   doRoll(seed);
   pushLog("전체 리셋");
 }
@@ -748,14 +745,6 @@ document.getElementById("printBtn").addEventListener("click", () => window.print
 
 document.getElementById("cap50").addEventListener("change", () => { renderAll(); pushLog(`특성 최대 50: ${getCap50Enabled() ? "ON" : "OFF"}`); });
 document.getElementById("freeApp").addEventListener("change", () => { renderAll(); pushLog(`APP 자유 조정: ${isFreeAppEnabled() ? "ON" : "OFF"}`); });
-
-/** memo autosave */
-document.getElementById("memoBox").addEventListener("input", (ev) => {
-  const t = ev.target;
-  state.memo = typeof t.value === "string" ? t.value : "";
-  updateOutputs();
-  autoSave();
-});
 
 /** JSON buttons */
 document.getElementById("saveJsonBtn").addEventListener("click", () => downloadJson());
