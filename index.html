@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CoC 탐사자 3회 굴림</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif; margin: 24px; background:#f6f7fb; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    h1 { margin: 0 0 12px; }
+    .row { display:flex; gap:16px; flex-wrap:wrap; }
+    .card { background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:12px; padding:14px; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+    .card.wide { flex: 1 1 580px; }
+    .card.side { flex: 1 1 320px; }
+    button { border:0; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:700; }
+    button.primary { background:#111827; color:#fff; }
+    button.ghost { background:#eef2ff; }
+    .grid { display:grid; grid-template-columns: 1fr; gap:10px; margin-top:12px; }
+    .stat { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .name { font-weight:800; width: 110px; }
+    .choices { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .pill { border:1px solid rgba(0,0,0,.12); border-radius:999px; padding:6px 10px; background:#fff; cursor:pointer; user-select:none; }
+    .pill input { margin-right:6px; }
+    .muted { color:#6b7280; font-size: 13px; }
+    textarea { width:100%; min-height: 260px; border-radius:12px; border:1px solid rgba(0,0,0,.12); padding:10px; }
+    .topbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .seed { font-size: 13px; color:#374151; }
+    code { background:#f3f4f6; padding:2px 6px; border-radius:6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>탐사자 만들기 (3회 굴림)</h1>
+    <div class="topbar">
+      <button class="primary" id="rollBtn">3회 굴림</button>
+      <button class="ghost" id="copyBtn">결과 복사</button>
+      <span class="seed muted" id="seedView"></span>
+    </div>
+    <div class="row" style="margin-top:14px;">
+      <div class="card wide">
+        <div class="muted">능력치(선택) + 세부사항(룰북 43~45p 표 기반: 1d10)</div>
+        <div class="grid" id="grid"></div>
+      </div>
+      <div class="card side">
+        <div style="font-weight:900; margin-bottom:8px;">최종 선택 결과</div>
+        <textarea id="out" readonly></textarea>
+        <div class="muted" style="margin-top:8px;">링크로 결과 재현하려면 <code>?seed=숫자</code></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/** seedable RNG (Mulberry32) */
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function() {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function parseSeed() {
+  const sp = new URLSearchParams(location.search);
+  const s = sp.get("seed");
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? Math.floor(n) : null;
+}
+function makeSeed() {
+  // 간단한 seed: 현재시간 기반
+  return Math.floor(Date.now() % 2147483647);
+}
+
+/** dice */
+function rollDie(rng, sides) {
+  return Math.floor(rng() * sides) + 1;
+}
+function rollNdM(rng, n, m) {
+  let sum = 0;
+  for (let i = 0; i < n; i++) sum += rollDie(rng, m);
+  return sum;
+}
+
+const groups = [
+  { key: "STR", label: "근력", fn: (rng) => rollNdM(rng,3,6) * 5 },
+  { key: "CON", label: "건강", fn: (rng) => rollNdM(rng,3,6) * 5 },
+  { key: "SIZ", label: "크기", fn: (rng) => (rollNdM(rng,2,6) + 6) * 5 },
+  { key: "DEX", label: "민첩성", fn: (rng) => rollNdM(rng,3,6) * 5 },
+  { key: "INT", label: "지능", fn: (rng) => (rollNdM(rng,2,6) + 6) * 5 },
+  { key: "APP", label: "외모", fn: (rng) => rollNdM(rng,3,6) * 5 },
+  { key: "POW", label: "정신력", fn: (rng) => rollNdM(rng,3,6) * 5 },
+  { key: "EDU", label: "교육", fn: (rng) => (rollNdM(rng,2,6) + 6) * 5 },
+  { key: "LUCK", label: "운", fn: (rng) => rollNdM(rng,3,6) * 5 },
+
+  { key: "BELIEF", label: "사상·신념(1d10)", fn: (rng) => rollNdM(rng,1,10) },
+  { key: "PERSON", label: "중요한 사람(1d10)", fn: (rng) => rollNdM(rng,1,10) },
+  { key: "PLACE", label: "의미 있는 장소(1d10)", fn: (rng) => rollNdM(rng,1,10) },
+  { key: "THING", label: "소중한 물건(1d10)", fn: (rng) => rollNdM(rng,1,10) },
+  { key: "TRAIT", label: "성격(1d10)", fn: (rng) => rollNdM(rng,1,10) },
+];
+
+const state = {
+  seed: 0,
+  rolls: new Map(), // key -> number[]
+  pick: new Map(),  // key -> index(0..2)
+};
+
+function render() {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  for (const g of groups) {
+    const values = state.rolls.get(g.key) ?? [0,0,0];
+    const picked = state.pick.get(g.key) ?? 0;
+
+    const line = document.createElement("div");
+    line.className = "stat";
+
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = g.label;
+
+    const choices = document.createElement("div");
+    choices.className = "choices";
+
+    values.forEach((v, idx) => {
+      const lab = document.createElement("label");
+      lab.className = "pill";
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = `pick_${g.key}`;
+      radio.checked = idx === picked;
+      radio.addEventListener("change", () => {
+        state.pick.set(g.key, idx);
+        updateOutput();
+      });
+      lab.appendChild(radio);
+      const txt = document.createTextNode(String(v));
+      lab.appendChild(txt);
+      choices.appendChild(lab);
+    });
+
+    line.appendChild(name);
+    line.appendChild(choices);
+    grid.appendChild(line);
+  }
+
+  updateOutput();
+}
+
+function updateOutput() {
+  const lines = [];
+  lines.push(`탐사자 만들기 (3회 굴림)`);
+  lines.push(`seed: ${state.seed}`);
+  lines.push("");
+
+  // 능력치 9개
+  const stats = ["STR","CON","SIZ","DEX","INT","APP","POW","EDU","LUCK"];
+  for (const k of stats) {
+    const g = groups.find(x => x.key === k);
+    if (!g) continue;
+    const values = state.rolls.get(k) ?? [0,0,0];
+    const picked = state.pick.get(k) ?? 0;
+    lines.push(`${g.label}: ${values[picked]}`);
+  }
+
+  lines.push("");
+  lines.push("세부 사항 (1d10):");
+  const details = ["BELIEF","PERSON","PLACE","THING","TRAIT"];
+  for (const k of details) {
+    const g = groups.find(x => x.key === k);
+    if (!g) continue;
+    const values = state.rolls.get(k) ?? [0,0,0];
+    const picked = state.pick.get(k) ?? 0;
+    lines.push(`- ${g.label}: ${values[picked]}`);
+  }
+
+  document.getElementById("out").value = lines.join("\n");
+}
+
+function doRoll(seed) {
+  state.seed = seed;
+  const rng = mulberry32(seed);
+  state.rolls.clear();
+  state.pick.clear();
+
+  for (const g of groups) {
+    const arr = [g.fn(rng), g.fn(rng), g.fn(rng)];
+    state.rolls.set(g.key, arr);
+    state.pick.set(g.key, 0);
+  }
+
+  document.getElementById("seedView").textContent = `seed = ${seed}`;
+  render();
+}
+
+document.getElementById("rollBtn").addEventListener("click", () => {
+  const seed = makeSeed();
+  const url = new URL(location.href);
+  url.searchParams.set("seed", String(seed));
+  history.replaceState({}, "", url.toString());
+  doRoll(seed);
+});
+
+document.getElementById("copyBtn").addEventListener("click", async () => {
+  const text = document.getElementById("out").value;
+  try {
+    await navigator.clipboard.writeText(text);
+    alert("복사 완료!");
+  } catch {
+    // clipboard가 막힌 환경 대비
+    const ta = document.getElementById("out");
+    ta.focus();
+    ta.select();
+    document.execCommand("copy");
+    alert("복사 완료!");
+  }
+});
+
+// init
+const seed = parseSeed() ?? makeSeed();
+const url = new URL(location.href);
+url.searchParams.set("seed", String(seed));
+history.replaceState({}, "", url.toString());
+doRoll(seed);
+</script>
+</body>
+</html>
