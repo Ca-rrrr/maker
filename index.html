@@ -176,6 +176,12 @@
       <button id="firstGenBtn">🧒 첫 생성 (13세 적용)</button>
       <button id="growthRollBtn">📈 시나리오 성장 (3D10)</button>
       <button id="growthManualBtn">✍️ 성장 수동추가</button>
+
+      <!-- ✅ JSON 저장/불러오기 -->
+      <button id="saveJsonBtn">💾 JSON 저장</button>
+      <button id="loadJsonBtn">📂 JSON 불러오기</button>
+      <button id="clearAutoSaveBtn" class="warn">🗑️ 자동저장 삭제</button>
+
       <button id="resetBtn" class="warn">🧹 리셋</button>
 
       <span class="pill"><b>seed</b> <span id="seedView">-</span></span>
@@ -250,7 +256,7 @@
             </div>
 
             <div class="muted" style="margin-top:8px;">
-              기능 목록/초기값은 자유롭게 편집 가능. (룰북 기본치가 필요하면 네 캠페인 기준에 맞춰 바꾸는 게 안전해.)
+              기능 목록/초기값은 자유롭게 편집 가능.
             </div>
           </div>
 
@@ -282,7 +288,7 @@
         </div>
 
         <div class="muted" style="margin-bottom:8px;">
-          “주사위 없이 합의”를 위해 수동으로 값을 조정할 수 있어. (CAP50 ON이면 자동으로 50까지만)
+          주사위 없이 합의한 값으로 수동 조정 가능.
         </div>
 
         <table>
@@ -302,22 +308,17 @@
 
         <div style="margin-top:14px;" class="section-title">
           <span>세부사항(1d10)</span>
-          <small class="muted">룰북 표 문구는 직접 작성한 것만 권장</small>
+          <small class="muted">문구 매핑은 커스텀 추천</small>
         </div>
         <div class="muted">
-          현재는 숫자만 제공. 네가 “1~10 문구”를 직접 써서 보내주면, 그 문구로 매핑해서 웹에서 바로 문장 출력 가능.
-        </div>
-
-        <div style="margin-top:14px;" class="section-title">
-          <span>배포 체크(404 방지)</span>
-          <small class="muted">GitHub Pages</small>
-        </div>
-        <div class="muted">
-          레포 루트에 <b>index.html</b> 있어야 하고, Settings → Pages에서 main / root로 켜야 함.
+          현재는 숫자만 제공.
         </div>
       </div>
     </div>
   </div>
+
+  <!-- 숨겨진 파일 입력(불러오기) -->
+  <input type="file" id="jsonFileInput" accept="application/json" style="display:none" />
 
 <script>
 "use strict";
@@ -327,14 +328,13 @@ function mulberry32(seed) {
   let a = seed >>> 0;
   return function () {
     a |= 0;
-    a = (a + 0x6D2B79F5) | 0;
+    a = (a + 0x6D2B79B9) | 0;
     let t = Math.imul(a ^ (a >>> 15), 1 | a);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
 function hash32(a, b) {
-  // simple deterministic mixer (not crypto)
   let x = (a ^ 0x9E3779B9) >>> 0;
   x = Math.imul(x ^ (x >>> 16), 0x85EBCA6B) >>> 0;
   x = (x + (b >>> 0)) >>> 0;
@@ -371,10 +371,10 @@ function rollNdM(rng, n, m) {
 
 /** ---------- config ---------- */
 const GROWTH_LIMIT = 120;
+const AUTO_SAVE_KEY = "coc_maker_autosave_v1";
 const STATS_KEYS = ["STR","CON","SIZ","DEX","INT","APP","POW","EDU","LUCK"];
 const DETAIL_KEYS = ["BELIEF","PERSON","PLACE","THING","TRAIT"];
 
-// stats + details (3-roll choices)
 const groups = [
   { key: "STR", label: "근력", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
   { key: "CON", label: "건강", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
@@ -396,43 +396,30 @@ const groups = [
 /** ---------- state ---------- */
 const state = {
   seed: 0,
-  rolls: new Map(),    // key -> number[3]
-  pick: new Map(),     // key -> 0..2
+  rolls: new Map(),
+  pick: new Map(),
   isFirstGenApplied: false,
 
   scenarioCount: 0,
-  growthTotal: 0,      // 누적 획득
-  growthPool: 0,       // 현재 배분 가능 풀
+  growthTotal: 0,
+  growthPool: 0,
 
-  // skills
-  skills: new Map(),   // name -> { base:number, delta:number }
-  // log entries
-  log: [],             // string[]
+  skills: new Map(), // name -> { base:number, delta:number }
+  log: [],
+
+  // UI flags persisted too
+  cap50: true,
+  freeApp: true,
 };
 
-// 기본 기능 목록(캠페인에 맞게 자유 수정 가능)
 function seedDefaultSkills() {
   state.skills.clear();
   const defaults = [
-    ["관찰력", 0],
-    ["듣기", 0],
-    ["심리학", 0],
-    ["은신", 0],
-    ["설득", 0],
-    ["말재주", 0],
-    ["위협", 0],
-    ["자료조사", 0],
-    ["도서관이용", 0],
-    ["응급처치", 0],
-    ["정신분석", 0],
-    ["역사", 0],
-    ["자연사", 0],
-    ["컴퓨터사용", 0],
-    ["전자공학", 0],
+    ["관찰력", 0],["듣기", 0],["심리학", 0],["은신", 0],["설득", 0],["말재주", 0],
+    ["위협", 0],["자료조사", 0],["도서관이용", 0],["응급처치", 0],["정신분석", 0],
+    ["역사", 0],["자연사", 0],["컴퓨터사용", 0],["전자공학", 0],
   ];
-  for (const [name, base] of defaults) {
-    state.skills.set(name, { base: base, delta: 0 });
-  }
+  for (const [name, base] of defaults) state.skills.set(name, { base: base, delta: 0 });
 }
 
 /** ---------- helpers ---------- */
@@ -447,210 +434,25 @@ function isFreeAppEnabled() {
 function capValue(key, v) {
   const capOn = getCap50Enabled();
   if (!capOn) return v;
-  if (key === "APP" && isFreeAppEnabled()) return v; // APP 자유
+  if (key === "APP" && isFreeAppEnabled()) return v;
   return Math.min(v, 50);
 }
 function findGroupLabel(key) {
   const g = groups.find((x) => x.key === key);
   return g ? g.label : key;
 }
-function fmt(n) {
-  return String(n);
-}
 function pushLog(line) {
   const now = new Date();
   const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
   state.log.unshift(`[${ts}] ${line}`);
   renderLog();
+  autoSave();
 }
 function renderLog() {
   const box = document.getElementById("logBox");
   if (!box) return;
   box.textContent = state.log.join("\n");
 }
-
-/** ---------- rolling ---------- */
-function doRoll(seed) {
-  state.seed = seed;
-  state.rolls.clear();
-  state.pick.clear();
-  state.isFirstGenApplied = false;
-
-  const rng = mulberry32(seed);
-
-  for (const g of groups) {
-    const arr = [g.fn(rng), g.fn(rng), g.fn(rng)];
-    state.rolls.set(g.key, arr);
-    state.pick.set(g.key, 0);
-  }
-
-  // growth state does not reset on roll by default (Roll20처럼 수치만 다시 뽑는 걸 가정)
-  // 하지만 원하면 리셋 버튼으로 전체 초기화 가능.
-  setSeedInUrl(seed);
-  renderAll();
-  pushLog(`3회 굴림 실행 (seed=${seed})`);
-}
-
-function applyFirstGeneration() {
-  // 첫 생성(13세) 규칙:
-  // - 모든 특성치 주사위 결과 /2 (내림)
-  // - EDU = 45 고정
-  // - CAP50 ON이면 상한 자동 적용
-  // - APP는 자유조정이므로 CAP50에서 제외 가능(토글)
-  for (const k of STATS_KEYS) {
-    if (k === "EDU") {
-      state.rolls.set(k, [45,45,45]);
-      state.pick.set(k, 0);
-      continue;
-    }
-    const values = state.rolls.get(k);
-    if (!values) continue;
-
-    const halved = values.map((v) => Math.floor(v / 2));
-    state.rolls.set(k, halved);
-    state.pick.set(k, 0);
-  }
-  state.isFirstGenApplied = true;
-  renderAll();
-  pushLog(`첫 생성(13세) 적용: (주사위값)/2, EDU=45 고정`);
-}
-
-/** ---------- growth (scenario end) ---------- */
-function scenarioGrowthRoll() {
-  if (state.growthTotal >= GROWTH_LIMIT) {
-    alert("더 이상 성장할 수 없습니다. (최대 120점)");
-    return;
-  }
-
-  // 재현 가능하게: seed + (scenarioCount+1)으로 결정
-  const nextScenario = state.scenarioCount + 1;
-  const rng = mulberry32(hash32(state.seed, nextScenario));
-
-  const rolled = rollNdM(rng, 3, 10);
-  const remaining = GROWTH_LIMIT - state.growthTotal;
-  const gained = Math.min(rolled, remaining);
-
-  state.scenarioCount = nextScenario;
-  state.growthTotal += gained;
-  state.growthPool += gained;
-
-  renderKpi();
-  renderSkills();
-  updateOutputs();
-
-  pushLog(`${state.scenarioCount}회차 성장: 3D10=${rolled} → +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT}, 풀 ${state.growthPool})`);
-}
-
-function scenarioGrowthManual() {
-  if (state.growthTotal >= GROWTH_LIMIT) {
-    alert("더 이상 성장할 수 없습니다. (최대 120점)");
-    return;
-  }
-
-  const raw = prompt("수동으로 추가할 성장 포인트를 입력해줘 (0~120 남은 범위 내).", "10");
-  if (raw === null) return;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < 0) {
-    alert("숫자를 올바르게 입력해줘.");
-    return;
-  }
-
-  const remaining = GROWTH_LIMIT - state.growthTotal;
-  const gained = Math.min(Math.floor(n), remaining);
-
-  // 수동 추가는 회차와 별개로 넣을 수도 있는데, 편의상 회차는 그대로 두고 풀/누적만 증가
-  state.growthTotal += gained;
-  state.growthPool += gained;
-
-  renderKpi();
-  renderSkills();
-  updateOutputs();
-
-  pushLog(`성장 수동추가: +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT}, 풀 ${state.growthPool})`);
-}
-
-/** ---------- skills ---------- */
-function getSkillCap() {
-  return getCap50Enabled() ? 50 : 9999;
-}
-function addSkill(name, base) {
-  const trimmed = name.trim();
-  if (!trimmed) return;
-  if (state.skills.has(trimmed)) {
-    alert("이미 있는 기능명이야.");
-    return;
-  }
-  const cap = getSkillCap();
-  const b = Math.max(0, Math.min(Math.floor(base), cap));
-  state.skills.set(trimmed, { base: b, delta: 0 });
-  renderSkills();
-  updateOutputs();
-  pushLog(`기능 추가: ${trimmed} (기본 ${b})`);
-}
-function removeSkill(name) {
-  if (!state.skills.has(name)) return;
-  state.skills.delete(name);
-  renderSkills();
-  updateOutputs();
-  pushLog(`기능 삭제: ${name}`);
-}
-function clearSkillDeltas() {
-  for (const v of state.skills.values()) v.delta = 0;
-  renderSkills();
-}
-function applySkillDeltas() {
-  if (state.growthPool <= 0) {
-    alert("배분할 성장 포인트 풀이 없어.");
-    return;
-  }
-
-  // 총 소모 계산
-  let spent = 0;
-  for (const v of state.skills.values()) {
-    const d = Math.max(0, Math.floor(v.delta));
-    spent += d;
-  }
-  if (spent <= 0) {
-    alert("증가값이 없어.");
-    return;
-  }
-  if (spent > state.growthPool) {
-    alert(`증가 합계(${spent})가 풀(${state.growthPool})을 초과했어.`);
-    return;
-  }
-
-  const cap = getSkillCap();
-  // 적용 + cap 체크
-  for (const [name, v] of state.skills.entries()) {
-    const d = Math.max(0, Math.floor(v.delta));
-    if (d <= 0) continue;
-
-    const before = v.base;
-    let after = before + d;
-
-    // APP 예외는 "특성치"에 해당이고, 기능은 cap50이면 그냥 50 cap 적용
-    if (getCap50Enabled()) after = Math.min(after, cap);
-
-    const applied = after - before;
-    if (applied < d) {
-      // cap 때문에 일부만 적용
-      spent -= (d - applied);
-      v.base = after;
-    } else {
-      v.base = after;
-    }
-    v.delta = 0;
-  }
-
-  state.growthPool -= spent;
-  renderKpi();
-  renderSkills();
-  updateOutputs();
-
-  pushLog(`기능 배분 적용: -${spent} (풀 ${state.growthPool})`);
-}
-
-/** ---------- UI render ---------- */
 function renderSeed() {
   const el = document.getElementById("seedView");
   if (el) el.textContent = String(state.seed);
@@ -665,13 +467,158 @@ function renderKpi() {
   if (poolEl) poolEl.textContent = String(state.growthPool);
   if (scEl) scEl.textContent = String(state.scenarioCount);
 }
+function getSelectedStat(key) {
+  const arr = state.rolls.get(key) ?? [0,0,0];
+  const idx = state.pick.get(key) ?? 0;
+  const raw = arr[idx] ?? 0;
+  return STATS_KEYS.includes(key) ? capValue(key, raw) : raw;
+}
+function updateOutputs() {
+  const sum = document.getElementById("outSummary");
+  const r20 = document.getElementById("outRoll20");
+  if (sum) sum.value = buildSummaryText();
+  if (r20) r20.value = buildRoll20Text();
+}
+function renderAll() {
+  renderSeed();
+  renderKpi();
+  renderStatsGrid();
+  renderSkills();
+  renderManualStats();
+  updateOutputs();
+  renderLog();
+}
 
+/** ---------- rolling ---------- */
+function doRoll(seed) {
+  state.seed = seed;
+  state.rolls.clear();
+  state.pick.clear();
+  state.isFirstGenApplied = false;
+
+  const rng = mulberry32(seed);
+  for (const g of groups) {
+    const arr = [g.fn(rng), g.fn(rng), g.fn(rng)];
+    state.rolls.set(g.key, arr);
+    state.pick.set(g.key, 0);
+  }
+
+  setSeedInUrl(seed);
+  renderAll();
+  pushLog(`3회 굴림 실행 (seed=${seed})`);
+}
+function applyFirstGeneration() {
+  for (const k of STATS_KEYS) {
+    if (k === "EDU") {
+      state.rolls.set(k, [45,45,45]);
+      state.pick.set(k, 0);
+      continue;
+    }
+    const values = state.rolls.get(k);
+    if (!values) continue;
+    const halved = values.map((v) => Math.floor(v / 2));
+    state.rolls.set(k, halved);
+    state.pick.set(k, 0);
+  }
+  state.isFirstGenApplied = true;
+  renderAll();
+  pushLog(`첫 생성(13세) 적용: (주사위값)/2, EDU=45 고정`);
+}
+
+/** ---------- growth ---------- */
+function scenarioGrowthRoll() {
+  if (state.growthTotal >= GROWTH_LIMIT) {
+    alert("더 이상 성장할 수 없습니다. (최대 120점)");
+    return;
+  }
+  const nextScenario = state.scenarioCount + 1;
+  const rng = mulberry32(hash32(state.seed, nextScenario));
+  const rolled = rollNdM(rng, 3, 10);
+  const remaining = GROWTH_LIMIT - state.growthTotal;
+  const gained = Math.min(rolled, remaining);
+
+  state.scenarioCount = nextScenario;
+  state.growthTotal += gained;
+  state.growthPool += gained;
+
+  renderKpi();
+  renderSkills();
+  updateOutputs();
+  pushLog(`${state.scenarioCount}회차 성장: 3D10=${rolled} → +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT}, 풀 ${state.growthPool})`);
+}
+function scenarioGrowthManual() {
+  if (state.growthTotal >= GROWTH_LIMIT) {
+    alert("더 이상 성장할 수 없습니다. (최대 120점)");
+    return;
+  }
+  const raw = prompt("수동으로 추가할 성장 포인트를 입력해줘.", "10");
+  if (raw === null) return;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) { alert("숫자를 올바르게 입력해줘."); return; }
+
+  const remaining = GROWTH_LIMIT - state.growthTotal;
+  const gained = Math.min(Math.floor(n), remaining);
+  state.growthTotal += gained;
+  state.growthPool += gained;
+
+  renderKpi();
+  renderSkills();
+  updateOutputs();
+  pushLog(`성장 수동추가: +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT}, 풀 ${state.growthPool})`);
+}
+
+/** ---------- skills ---------- */
+function getSkillCap() { return getCap50Enabled() ? 50 : 9999; }
+function addSkill(name, base) {
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  if (state.skills.has(trimmed)) { alert("이미 있는 기능명이야."); return; }
+  const cap = getSkillCap();
+  const b = Math.max(0, Math.min(Math.floor(base), cap));
+  state.skills.set(trimmed, { base: b, delta: 0 });
+  renderSkills(); updateOutputs(); pushLog(`기능 추가: ${trimmed} (기본 ${b})`);
+}
+function removeSkill(name) {
+  if (!state.skills.has(name)) return;
+  state.skills.delete(name);
+  renderSkills(); updateOutputs(); pushLog(`기능 삭제: ${name}`);
+}
+function clearSkillDeltas() {
+  for (const v of state.skills.values()) v.delta = 0;
+  renderSkills();
+  autoSave();
+}
+function applySkillDeltas() {
+  if (state.growthPool <= 0) { alert("배분할 성장 포인트 풀이 없어."); return; }
+
+  let spent = 0;
+  for (const v of state.skills.values()) spent += Math.max(0, Math.floor(v.delta));
+  if (spent <= 0) { alert("증가값이 없어."); return; }
+  if (spent > state.growthPool) { alert(`증가 합계(${spent})가 풀(${state.growthPool})을 초과했어.`); return; }
+
+  const cap = getSkillCap();
+  for (const v of state.skills.values()) {
+    const d = Math.max(0, Math.floor(v.delta));
+    if (d <= 0) continue;
+    const before = v.base;
+    let after = before + d;
+    if (getCap50Enabled()) after = Math.min(after, cap);
+    const applied = after - before;
+    if (applied < d) spent -= (d - applied);
+    v.base = after;
+    v.delta = 0;
+  }
+
+  state.growthPool -= spent;
+  renderKpi(); renderSkills(); updateOutputs();
+  pushLog(`기능 배분 적용: -${spent} (풀 ${state.growthPool})`);
+}
+
+/** ---------- UI render ---------- */
 function renderStatsGrid() {
   const grid = document.getElementById("statsGrid");
   if (!grid) return;
   grid.innerHTML = "";
-
-  // stats first, then details
   const ordered = [...STATS_KEYS, ...DETAIL_KEYS];
 
   for (const key of ordered) {
@@ -702,18 +649,20 @@ function renderStatsGrid() {
       radio.addEventListener("change", () => {
         state.pick.set(key, idx);
         updateOutputs();
-        renderManualStats(); // 수동표 현재값 갱신
+        renderManualStats();
+        autoSave();
       });
 
       lab.appendChild(radio);
-      lab.appendChild(document.createTextNode(fmt(v)));
-
+      lab.appendChild(document.createTextNode(String(v)));
       choices.appendChild(lab);
     });
 
-    // APP 자유조정 ON이면: 별도 “직접값” 입력 제공(선택값을 덮어씀)
+    line.appendChild(name);
+    line.appendChild(choices);
+
+    // APP 직접 조정 버튼 (자유조정 ON일 때 유용)
     if (key === "APP") {
-      const free = isFreeAppEnabled();
       const box = document.createElement("div");
       box.className = "inline";
       box.style.justifyContent = "flex-end";
@@ -722,46 +671,32 @@ function renderStatsGrid() {
       const input = document.createElement("input");
       input.type = "number";
       input.min = "0";
-      input.max = free ? "999" : (getCap50Enabled() ? "50" : "999");
+      input.max = (isFreeAppEnabled()) ? "999" : (getCap50Enabled() ? "50" : "999");
       input.value = String(currentApp);
       input.style.width = "110px";
-      input.title = "APP 직접 조정";
 
       const btn = document.createElement("button");
       btn.textContent = "APP 직접적용";
       btn.addEventListener("click", () => {
         const n = Number(input.value);
-        if (!Number.isFinite(n) || n < 0) {
-          alert("APP 값이 올바르지 않아.");
-          return;
-        }
+        if (!Number.isFinite(n) || n < 0) { alert("APP 값이 올바르지 않아."); return; }
         const v = Math.floor(n);
-        // 자유조정 ON이면 cap 무시, OFF면 cap 적용
-        const applied = (free) ? v : capValue("APP", v);
-        // rolls/pick 구조를 유지하기 위해: 선택된 슬롯에 반영
+        const applied = (isFreeAppEnabled()) ? v : capValue("APP", v);
         const pickedIdx = state.pick.get("APP") ?? 0;
         const arr = state.rolls.get("APP") ?? [0,0,0];
         arr[pickedIdx] = applied;
         state.rolls.set("APP", arr);
         updateOutputs();
         renderManualStats();
+        autoSave();
         pushLog(`APP 직접 적용: ${applied}`);
       });
 
       box.appendChild(input);
       box.appendChild(btn);
-
-      line.appendChild(choices);
       line.appendChild(box);
-    } else {
-      line.appendChild(name);
-      line.appendChild(choices);
-      grid.appendChild(line);
-      continue;
     }
 
-    // APP 라인은 구조가 달라서 name 먼저
-    line.insertBefore(name, line.firstChild);
     grid.appendChild(line);
   }
 }
@@ -794,6 +729,7 @@ function renderSkills() {
     input.addEventListener("input", () => {
       const n = Number(input.value);
       v.delta = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+      autoSave();
     });
     tdDelta.appendChild(input);
 
@@ -813,14 +749,6 @@ function renderSkills() {
   }
 }
 
-function getSelectedStat(key) {
-  const arr = state.rolls.get(key) ?? [0,0,0];
-  const idx = state.pick.get(key) ?? 0;
-  const raw = arr[idx] ?? 0;
-  return STATS_KEYS.includes(key) ? capValue(key, raw) : raw;
-}
-
-/** manual stats (backstory agreement) */
 function renderManualStats() {
   const body = document.getElementById("manualStatsBody");
   if (!body) return;
@@ -844,6 +772,7 @@ function renderManualStats() {
     inp.max = (k === "APP" && isFreeAppEnabled()) ? "999" : (getCap50Enabled() ? "50" : "999");
     inp.value = String(getSelectedStat(k));
     inp.dataset.key = k;
+    inp.addEventListener("input", () => autoSave());
     tdIn.appendChild(inp);
 
     tr.appendChild(tdK);
@@ -852,7 +781,6 @@ function renderManualStats() {
     body.appendChild(tr);
   }
 }
-
 function applyManualStats() {
   const body = document.getElementById("manualStatsBody");
   if (!body) return;
@@ -877,10 +805,11 @@ function applyManualStats() {
   renderStatsGrid();
   renderManualStats();
   updateOutputs();
+  autoSave();
   pushLog(`수동 특성치 적용`);
 }
 
-/** outputs */
+/** ---------- outputs ---------- */
 function buildSummaryText() {
   const lines = [];
   lines.push(`탐사자 요약`);
@@ -888,16 +817,12 @@ function buildSummaryText() {
   if (state.isFirstGenApplied) lines.push(`첫 생성(13세) 규칙: 적용됨`);
   lines.push("");
 
-  lines.push(`[특성치] (선택값)`);
-  for (const k of STATS_KEYS) {
-    lines.push(`${findGroupLabel(k)}: ${getSelectedStat(k)}`);
-  }
+  lines.push(`[특성치]`);
+  for (const k of STATS_KEYS) lines.push(`${findGroupLabel(k)}: ${getSelectedStat(k)}`);
 
   lines.push("");
   lines.push(`[세부사항] (선택값: 1~10)`);
-  for (const k of DETAIL_KEYS) {
-    lines.push(`${findGroupLabel(k)}: ${getSelectedStat(k)}`);
-  }
+  for (const k of DETAIL_KEYS) lines.push(`${findGroupLabel(k)}: ${getSelectedStat(k)}`);
 
   lines.push("");
   lines.push(`[성장]`);
@@ -908,15 +833,11 @@ function buildSummaryText() {
 
   lines.push(`[기능]`);
   const sorted = Array.from(state.skills.entries()).sort((a,b) => a[0].localeCompare(b[0], "ko"));
-  for (const [name, v] of sorted) {
-    lines.push(`${name}: ${v.base}`);
-  }
+  for (const [name, v] of sorted) lines.push(`${name}: ${v.base}`);
 
   return lines.join("\n");
 }
-
 function buildRoll20Text() {
-  // Roll20 채팅에 붙여넣기 좋은 “짧은 블록”
   const parts = [];
   parts.push(`탐사자 만들기 결과 (seed=${state.seed})`);
   parts.push(`특성치: STR ${getSelectedStat("STR")} / CON ${getSelectedStat("CON")} / SIZ ${getSelectedStat("SIZ")} / DEX ${getSelectedStat("DEX")} / INT ${getSelectedStat("INT")} / APP ${getSelectedStat("APP")} / POW ${getSelectedStat("POW")} / EDU ${getSelectedStat("EDU")} / LUCK ${getSelectedStat("LUCK")}`);
@@ -925,30 +846,12 @@ function buildRoll20Text() {
   return parts.join("\n");
 }
 
-function updateOutputs() {
-  const sum = document.getElementById("outSummary");
-  const r20 = document.getElementById("outRoll20");
-  if (sum) sum.value = buildSummaryText();
-  if (r20) r20.value = buildRoll20Text();
-}
-
-function renderAll() {
-  renderSeed();
-  renderKpi();
-  renderStatsGrid();
-  renderSkills();
-  renderManualStats();
-  updateOutputs();
-  renderLog();
-}
-
 /** ---------- copy / print ---------- */
 async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
     alert("복사 완료!");
-  } catch (e) {
-    // fallback
+  } catch {
     const ta = document.createElement("textarea");
     ta.value = text;
     document.body.appendChild(ta);
@@ -959,47 +862,208 @@ async function copyText(text) {
   }
 }
 
+/** ---------- JSON Save/Load + AutoSave ---------- */
+function mapsToObj() {
+  // Map -> plain object
+  const rollsObj = Object.create(null);
+  for (const [k, v] of state.rolls.entries()) rollsObj[k] = v;
+
+  const pickObj = Object.create(null);
+  for (const [k, v] of state.pick.entries()) pickObj[k] = v;
+
+  const skillsObj = Object.create(null);
+  for (const [name, v] of state.skills.entries()) {
+    skillsObj[name] = { base: v.base, delta: v.delta };
+  }
+
+  return { rollsObj, pickObj, skillsObj };
+}
+function objToMaps(payload) {
+  state.rolls.clear();
+  state.pick.clear();
+  state.skills.clear();
+
+  const rollsObj = payload.rolls ?? payload.rollsObj ?? {};
+  const pickObj = payload.pick ?? payload.pickObj ?? {};
+  const skillsObj = payload.skills ?? payload.skillsObj ?? {};
+
+  for (const k of Object.keys(rollsObj)) {
+    const arr = rollsObj[k];
+    if (Array.isArray(arr) && arr.length === 3) state.rolls.set(k, [Number(arr[0])||0, Number(arr[1])||0, Number(arr[2])||0]);
+  }
+  for (const k of Object.keys(pickObj)) {
+    const idx = Number(pickObj[k]);
+    state.pick.set(k, Number.isFinite(idx) ? Math.max(0, Math.min(2, Math.floor(idx))) : 0);
+  }
+  for (const name of Object.keys(skillsObj)) {
+    const v = skillsObj[name];
+    const base = Number(v?.base);
+    const delta = Number(v?.delta);
+    state.skills.set(name, {
+      base: Number.isFinite(base) ? Math.max(0, Math.floor(base)) : 0,
+      delta: Number.isFinite(delta) ? Math.max(0, Math.floor(delta)) : 0,
+    });
+  }
+}
+
+function exportJsonObject() {
+  const { rollsObj, pickObj, skillsObj } = mapsToObj();
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    seed: state.seed,
+    isFirstGenApplied: state.isFirstGenApplied,
+    scenarioCount: state.scenarioCount,
+    growthTotal: state.growthTotal,
+    growthPool: state.growthPool,
+    ui: {
+      cap50: getCap50Enabled(),
+      freeApp: isFreeAppEnabled(),
+    },
+    rolls: rollsObj,
+    pick: pickObj,
+    skills: skillsObj,
+    log: state.log,
+  };
+}
+
+function downloadJson() {
+  const obj = exportJsonObject();
+  const text = JSON.stringify(obj, null, 2);
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  const stamp = new Date();
+  const y = stamp.getFullYear();
+  const m = String(stamp.getMonth()+1).padStart(2,"0");
+  const d = String(stamp.getDate()).padStart(2,"0");
+  const hh = String(stamp.getHours()).padStart(2,"0");
+  const mm = String(stamp.getMinutes()).padStart(2,"0");
+  a.href = url;
+  a.download = `coc_maker_${y}${m}${d}_${hh}${mm}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  pushLog("JSON 저장(다운로드)");
+}
+
+function validateImported(obj) {
+  if (!obj || typeof obj !== "object") return "JSON 형식이 올바르지 않아.";
+  if (typeof obj.seed !== "number" || !Number.isFinite(obj.seed)) return "seed가 없어.";
+  if (typeof obj.scenarioCount !== "number" || obj.scenarioCount < 0) return "scenarioCount가 이상해.";
+  if (typeof obj.growthTotal !== "number" || obj.growthTotal < 0) return "growthTotal이 이상해.";
+  if (typeof obj.growthPool !== "number" || obj.growthPool < 0) return "growthPool이 이상해.";
+  if (!obj.rolls || typeof obj.rolls !== "object") return "rolls가 없어.";
+  if (!obj.pick || typeof obj.pick !== "object") return "pick이 없어.";
+  if (!obj.skills || typeof obj.skills !== "object") return "skills가 없어.";
+  return null;
+}
+
+function loadFromObject(obj) {
+  const err = validateImported(obj);
+  if (err) {
+    alert(err);
+    return;
+  }
+
+  state.seed = Math.floor(obj.seed);
+  state.isFirstGenApplied = !!obj.isFirstGenApplied;
+  state.scenarioCount = Math.max(0, Math.floor(obj.scenarioCount));
+  state.growthTotal = Math.max(0, Math.floor(obj.growthTotal));
+  state.growthPool = Math.max(0, Math.floor(obj.growthPool));
+  state.log = Array.isArray(obj.log) ? obj.log.map(String) : [];
+
+  // UI flags
+  const cap50 = !!obj.ui?.cap50;
+  const freeApp = !!obj.ui?.freeApp;
+  const capEl = document.getElementById("cap50");
+  const appEl = document.getElementById("freeApp");
+  if (capEl) capEl.checked = cap50;
+  if (appEl) appEl.checked = freeApp;
+
+  objToMaps(obj);
+
+  setSeedInUrl(state.seed);
+  renderAll();
+  autoSave();
+  pushLog("JSON 불러오기 완료");
+}
+
+function autoSave() {
+  try {
+    const obj = exportJsonObject();
+    localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(obj));
+  } catch {
+    // 저장 실패(스토리지 제한 등)면 조용히 무시
+  }
+}
+
+function loadAutoSaveIfAny() {
+  try {
+    const raw = localStorage.getItem(AUTO_SAVE_KEY);
+    if (!raw) return false;
+    const obj = JSON.parse(raw);
+    // auto-save는 로그에 또 로그 찍지 않게, loadFromObject의 pushLog는 쓰지 않음
+    const err = validateImported(obj);
+    if (err) return false;
+
+    state.seed = Math.floor(obj.seed);
+    state.isFirstGenApplied = !!obj.isFirstGenApplied;
+    state.scenarioCount = Math.max(0, Math.floor(obj.scenarioCount));
+    state.growthTotal = Math.max(0, Math.floor(obj.growthTotal));
+    state.growthPool = Math.max(0, Math.floor(obj.growthPool));
+    state.log = Array.isArray(obj.log) ? obj.log.map(String) : [];
+
+    const capEl = document.getElementById("cap50");
+    const appEl = document.getElementById("freeApp");
+    if (capEl) capEl.checked = !!obj.ui?.cap50;
+    if (appEl) appEl.checked = !!obj.ui?.freeApp;
+
+    objToMaps(obj);
+    setSeedInUrl(state.seed);
+    renderAll();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function clearAutoSave() {
+  try {
+    localStorage.removeItem(AUTO_SAVE_KEY);
+    alert("자동저장 데이터를 삭제했어.");
+  } catch {
+    alert("자동저장 삭제에 실패했어.");
+  }
+}
+
 /** ---------- reset ---------- */
 function resetAll() {
   const seed = parseSeed() ?? makeSeed();
   state.rolls.clear();
   state.pick.clear();
   state.isFirstGenApplied = false;
-
   state.scenarioCount = 0;
   state.growthTotal = 0;
   state.growthPool = 0;
-
   seedDefaultSkills();
   state.log = [];
-
   doRoll(seed);
   pushLog("전체 리셋");
 }
 
 /** ---------- wire up ---------- */
-document.getElementById("rollBtn").addEventListener("click", () => {
-  doRoll(makeSeed());
-});
-document.getElementById("firstGenBtn").addEventListener("click", () => {
-  applyFirstGeneration();
-});
-document.getElementById("growthRollBtn").addEventListener("click", () => {
-  scenarioGrowthRoll();
-});
-document.getElementById("growthManualBtn").addEventListener("click", () => {
-  scenarioGrowthManual();
-});
-document.getElementById("resetBtn").addEventListener("click", () => {
-  resetAll();
-});
+document.getElementById("rollBtn").addEventListener("click", () => doRoll(makeSeed()));
+document.getElementById("firstGenBtn").addEventListener("click", () => applyFirstGeneration());
+document.getElementById("growthRollBtn").addEventListener("click", () => scenarioGrowthRoll());
+document.getElementById("growthManualBtn").addEventListener("click", () => scenarioGrowthManual());
+document.getElementById("resetBtn").addEventListener("click", () => resetAll());
 
-document.getElementById("applySkillBtn").addEventListener("click", () => {
-  applySkillDeltas();
-});
-document.getElementById("clearDeltaBtn").addEventListener("click", () => {
-  clearSkillDeltas();
-});
+document.getElementById("applySkillBtn").addEventListener("click", () => applySkillDeltas());
+document.getElementById("clearDeltaBtn").addEventListener("click", () => clearSkillDeltas());
 document.getElementById("addSkillBtn").addEventListener("click", () => {
   const nameEl = document.getElementById("newSkillName");
   const baseEl = document.getElementById("newSkillBase");
@@ -1008,51 +1072,62 @@ document.getElementById("addSkillBtn").addEventListener("click", () => {
   addSkill(name, base);
   if (nameEl) nameEl.value = "";
 });
-document.getElementById("applyManualStatsBtn").addEventListener("click", () => {
-  applyManualStats();
-});
+document.getElementById("applyManualStatsBtn").addEventListener("click", () => applyManualStats());
 
 document.getElementById("copySummaryBtn").addEventListener("click", async () => {
   const el = document.getElementById("outSummary");
-  if (!el) return;
-  await copyText(el.value);
+  if (el) await copyText(el.value);
 });
 document.getElementById("copyRoll20Btn").addEventListener("click", async () => {
   const el = document.getElementById("outRoll20");
-  if (!el) return;
-  await copyText(el.value);
+  if (el) await copyText(el.value);
 });
-document.getElementById("printBtn").addEventListener("click", () => {
-  window.print();
-});
+document.getElementById("printBtn").addEventListener("click", () => window.print());
 
-// CAP 토글 변경 시 즉시 재렌더 (상한 적용/입력 max 갱신)
 document.getElementById("cap50").addEventListener("change", () => {
-  // stats cap는 선택값 표시에서만 영향, skills cap는 입력 max에 영향
-  renderStatsGrid();
-  renderSkills();
-  renderManualStats();
-  updateOutputs();
+  renderStatsGrid(); renderSkills(); renderManualStats(); updateOutputs();
+  autoSave();
   pushLog(`상한 50 토글: ${getCap50Enabled() ? "ON" : "OFF"}`);
 });
 document.getElementById("freeApp").addEventListener("change", () => {
-  renderStatsGrid();
-  renderManualStats();
-  updateOutputs();
+  renderStatsGrid(); renderManualStats(); updateOutputs();
+  autoSave();
   pushLog(`APP 자유 조정: ${isFreeAppEnabled() ? "ON" : "OFF"}`);
 });
 
+/** JSON buttons */
+document.getElementById("saveJsonBtn").addEventListener("click", () => downloadJson());
+document.getElementById("loadJsonBtn").addEventListener("click", () => {
+  const input = document.getElementById("jsonFileInput");
+  if (input) input.click();
+});
+document.getElementById("jsonFileInput").addEventListener("change", async (ev) => {
+  const input = ev.target;
+  const files = input.files;
+  if (!files || files.length === 0) return;
+  const file = files[0];
+  try {
+    const text = await file.text();
+    const obj = JSON.parse(text);
+    loadFromObject(obj);
+  } catch {
+    alert("파일을 읽거나 JSON 파싱에 실패했어.");
+  } finally {
+    input.value = "";
+  }
+});
+document.getElementById("clearAutoSaveBtn").addEventListener("click", () => clearAutoSave());
+
 /** ---------- init ---------- */
 (function init() {
-  seedDefaultSkills();
+  // auto-save가 있으면 복원, 없으면 기본 초기화
+  const restored = loadAutoSaveIfAny();
+  if (restored) return;
 
+  seedDefaultSkills();
   const seed = parseSeed() ?? makeSeed();
   setSeedInUrl(seed);
-
-  // 초기 주사위 굴림
   doRoll(seed);
-
-  // 초기 로그 한 줄
   pushLog("페이지 초기화 완료");
 })();
 </script>
