@@ -114,10 +114,31 @@
       border-radius: 12px;
       padding: 10px 12px;
       background:#fff;
-      max-height: 220px;
+      max-height: 260px;
       overflow:auto;
       font-size: 12px;
       line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    details{
+      border:1px solid rgba(0,0,0,.08);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background:#fff;
+      margin-bottom: 12px;
+    }
+    details > summary{
+      cursor:pointer;
+      font-weight: 900;
+      list-style: none;
+      outline: none;
+    }
+    details > summary::-webkit-details-marker{ display:none; }
+    .ruletext{
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
       white-space: pre-wrap;
     }
 
@@ -135,7 +156,6 @@
       textarea{ min-height: 150px; }
       .kpi .box{ flex: 1 1 calc(50% - 10px); }
     }
-
     @media (max-width: 420px){
       .kpi .box{ flex: 1 1 100%; }
       .topbar{ gap:8px; }
@@ -145,7 +165,7 @@
 
     @media print{
       body{ background:#fff; margin: 12mm; }
-      .topbar, .muted, .pill, button{ display:none !important; }
+      .topbar, details, .muted, .pill, button{ display:none !important; }
       .card{ box-shadow:none; }
       textarea{ min-height: 120px; }
     }
@@ -155,9 +175,20 @@
   <div class="wrap">
     <h1>CoC 탐사자 메이커</h1>
 
+    <details>
+      <summary>【캐릭터를 성장시키자!】 규칙 보기</summary>
+      <div class="ruletext" id="rulesBox"></div>
+    </details>
+
     <div class="topbar">
       <button class="primary" id="rollBtn">🎲 3회 굴림</button>
       <button id="firstGenBtn">🧒 첫 생성 (13세 적용)</button>
+
+      <button id="g16Btn">🧑 1차 성장 (16세)</button>
+      <button id="g19Btn">🧑 2차 성장 (19세)</button>
+      <button id="g22Btn">🧑 3차 성장 (22세)</button>
+      <button id="g25Btn">🧑 4차 성장 (25세)</button>
+
       <button id="growthRollBtn">📈 시나리오 성장 (3D10)</button>
       <button id="growthManualBtn">✍️ 성장 수동추가</button>
 
@@ -179,7 +210,7 @@
       <div class="card wide">
         <div class="section-title">
           <span>특성치 / 세부사항 (3회 후보 선택)</span>
-          <small>첫 생성(13세): APP 제외 /2, EDU=45 고정 (중복 적용 방지)</small>
+          <small>13세: APP 제외 /2, EDU=45 고정 (중복 적용 방지)</small>
         </div>
 
         <div class="grid" id="statsGrid"></div>
@@ -199,7 +230,7 @@
             <div class="value"><span id="growthPool">0</span></div>
           </div>
           <div class="box">
-            <div class="label">회차</div>
+            <div class="label">시나리오 회차</div>
             <div class="value"><span id="scenarioCount">0</span></div>
           </div>
         </div>
@@ -218,8 +249,8 @@
 
       <div class="card side">
         <div class="section-title">
-          <span>성장 로그</span>
-          <small class="muted">획득 기록</small>
+          <span>로그</span>
+          <small class="muted">성장/굴림 기록</small>
         </div>
         <div class="log" id="logBox"></div>
       </div>
@@ -263,9 +294,7 @@ function setSeedInUrl(seed) {
   url.searchParams.set("seed", String(seed));
   history.replaceState({}, "", url.toString());
 }
-function makeSeed() {
-  return Math.floor(Date.now() % 2147483647);
-}
+function makeSeed() { return Math.floor(Date.now() % 2147483647); }
 
 /** dice */
 function rollDie(rng, sides) { return Math.floor(rng() * sides) + 1; }
@@ -273,9 +302,36 @@ function rollNdM(rng, n, m) { let s = 0; for (let i=0;i<n;i++) s += rollDie(rng,
 
 /** config */
 const GROWTH_LIMIT = 120;
-const AUTO_SAVE_KEY = "coc_maker_autosave_v5";
+const AUTO_SAVE_KEY = "coc_maker_autosave_v6";
 const STATS_KEYS = ["STR","CON","SIZ","DEX","INT","APP","POW","EDU","LUCK"];
 const DETAIL_KEYS = ["BELIEF","PERSON","PLACE","THING","TRAIT"];
+
+const RULES_TEXT = `【캐릭터를 성장시키자!】
+플레이어의 캐릭터는 13살에서 시작하여 매 시나리오마다 성장합니다.
+또한 매 시나리오가 끝날 때마다 교육 성장으로 얻는 추가 기능점수 외에 3D10점의 기능 점수를 얻어 배분할 수 있습니다. (최대 획득 가능 점수: 120점)
+플레이어가 원한다면 수호자와 주사위를 굴리지 않고 백스토리에 맞는 범위 내에서 자유롭게 올리고 성장할 수도 있습니다.
+또한 아래의 성장 툴에서 외모 수치는 해당되지 않으며, 자유롭게 올리고 내릴 수 있습니다.
+
+[첫 생성: 13세]
+각 특성치의 주사위를 굴린 후 2로 나눕니다. (ex. 근력: (3D6x5)/2)
+교육은 모두 45로 통일합니다.
+특성/기능의 최대 수치는 50을 넘을 수 없습니다.
+
+[1차 성장: 16세]
+근력, 크기, 민첩, 지능, 건강을 1D10점 향상합니다.
+정신력과 교육은 각각 최대 10점내에서 자유로이 올립니다.
+
+[2차 성장: 19세]
+근력, 크기, 민첩, 지능, 건강을 1D10점 향상합니다. (하락도 가능.)
+정신력과 교육은 각 10점씩 향상합니다. (최대치 적용 시 70이 됩니다.)
+
+[3차 성장: 22세]
+성장하고 싶은 특성을 4가지 정해 1D10점을 올립니다. 특성의 하락도 가능 합니다.
+그 외 3가지 특성은 향상 판정을 진행, 성공 시 1D10점을 향상합니다.
+
+[4차 성장: 25세]
+성장하고 싶은 특성에 향상 판정을 하여 성공 시 1D10점을 향상합니다.
+정신력과 교육은 원할 경우 1D10점씩 상승합니다.`;
 
 const groups = [
   { key: "STR", label: "근력", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
@@ -287,12 +343,18 @@ const groups = [
   { key: "POW", label: "정신력", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
   { key: "EDU", label: "교육(EDU)", fn: (rng) => (rollNdM(rng, 2, 6) + 6) * 5 },
   { key: "LUCK", label: "운", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
+
   { key: "BELIEF", label: "사상·신념 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
   { key: "PERSON", label: "중요한 사람 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
   { key: "PLACE", label: "의미 있는 장소 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
   { key: "THING", label: "소중한 물건 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
   { key: "TRAIT", label: "성격 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
 ];
+
+const labelByKey = {
+  STR:"근력", CON:"건강", SIZ:"크기", DEX:"민첩", INT:"지능", APP:"외모", POW:"정신력", EDU:"교육", LUCK:"운"
+};
+const statListForChoice = ["STR","CON","SIZ","DEX","INT","POW","EDU","LUCK","APP"];
 
 /** state */
 const state = {
@@ -304,11 +366,13 @@ const state = {
   growthTotal: 0,
   growthPool: 0,
   log: [],
+  milestones: { g16:false, g19:false, g22:false, g25:false }
 };
 
 /** helpers */
 function getCap50Enabled() { const el = document.getElementById("cap50"); return !!el && el.checked; }
 function isFreeAppEnabled() { const el = document.getElementById("freeApp"); return !!el && el.checked; }
+
 function capValue(key, v) {
   const capOn = getCap50Enabled();
   if (!capOn) return v;
@@ -317,7 +381,7 @@ function capValue(key, v) {
 }
 function findGroupLabel(key) {
   const g = groups.find((x) => x.key === key);
-  return g ? g.label : key;
+  return g ? g.label : (labelByKey[key] ?? key);
 }
 function getSelectedValue(key) {
   const arr = state.rolls.get(key) ?? [0,0,0];
@@ -325,6 +389,13 @@ function getSelectedValue(key) {
   const raw = arr[idx] ?? 0;
   return STATS_KEYS.includes(key) ? capValue(key, raw) : raw;
 }
+function setSelectedRawValue(key, newRaw) {
+  const idx = state.pick.get(key) ?? 0;
+  const arr = state.rolls.get(key) ?? [0,0,0];
+  arr[idx] = newRaw;
+  state.rolls.set(key, arr);
+}
+
 function computeSkillBudgetText() {
   const edu = getSelectedValue("EDU");
   const intel = getSelectedValue("INT");
@@ -333,7 +404,11 @@ function computeSkillBudgetText() {
   const total = job + hobby;
   return `${total} (직업 ${job} + 흥미 ${hobby})`;
 }
-function renderSeed() { const el = document.getElementById("seedView"); if (el) el.textContent = String(state.seed); }
+
+function renderSeed() {
+  const el = document.getElementById("seedView");
+  if (el) el.textContent = String(state.seed);
+}
 function renderKpi() {
   const budEl = document.getElementById("skillBudget");
   if (budEl) budEl.textContent = computeSkillBudgetText();
@@ -347,7 +422,10 @@ function renderKpi() {
   if (poolEl) poolEl.textContent = String(state.growthPool);
   if (scEl) scEl.textContent = String(state.scenarioCount);
 }
-function renderLog() { const box = document.getElementById("logBox"); if (box) box.textContent = state.log.join("\n"); }
+function renderLog() {
+  const box = document.getElementById("logBox");
+  if (box) box.textContent = state.log.join("\n");
+}
 function pushLog(line) {
   const now = new Date();
   const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
@@ -356,12 +434,46 @@ function pushLog(line) {
   autoSave();
 }
 
+function stageRng(stageCode, key) {
+  // stageCode: 13/16/19/22/25 등
+  // key: "STR" 등 - 문자열을 숫자로 만들기(간단 해시)
+  let k = 0;
+  for (let i=0;i<key.length;i++) k = (k * 31 + key.charCodeAt(i)) >>> 0;
+  const s = hash32(state.seed >>> 0, (stageCode * 1000 + (k % 997)) >>> 0);
+  return mulberry32(s);
+}
+
+function promptIntInRange(message, min, max, def) {
+  const raw = prompt(message, String(def));
+  if (raw === null) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) { alert("숫자를 입력해줘."); return null; }
+  const v = Math.floor(n);
+  if (v < min || v > max) { alert(`${min} ~ ${max} 사이로 입력해줘.`); return null; }
+  return v;
+}
+function promptYesNo(message, defYes) {
+  const def = defYes ? "y" : "n";
+  const raw = prompt(`${message} (y/n)`, def);
+  if (raw === null) return null;
+  const t = raw.trim().toLowerCase();
+  return t === "y" || t === "yes" || t === "ㅇ" || t === "ㅛ";
+}
+function pickSignForDelta(statKey, delta) {
+  const raw = prompt(`${labelByKey[statKey] ?? statKey} 변화량: ${delta}\n하락도 가능: +면 그대로, -면 마이너스 적용\n(+/- 입력)`, "+");
+  if (raw === null) return null;
+  const t = raw.trim();
+  if (t === "-") return -delta;
+  return delta;
+}
+
 /** rolling */
 function doRoll(seed) {
   state.seed = seed;
   state.rolls.clear();
   state.pick.clear();
   state.isFirstGenApplied = false;
+  state.milestones = { g16:false, g19:false, g22:false, g25:false };
 
   const rng = mulberry32(seed);
   for (const g of groups) {
@@ -379,7 +491,6 @@ function applyFirstGen13() {
     alert("이미 13세 적용이 되어 있어! 다시 하려면 리셋 또는 3회 굴림을 눌러줘.");
     return;
   }
-  // 13세: APP 제외 /2, EDU=45 고정
   for (const k of STATS_KEYS) {
     if (k === "EDU") {
       state.rolls.set(k, [45,45,45]);
@@ -387,7 +498,6 @@ function applyFirstGen13() {
       continue;
     }
     if (k === "APP") continue;
-
     const values = state.rolls.get(k);
     if (!values) continue;
     const halved = values.map((v) => Math.floor(v / 2));
@@ -399,7 +509,174 @@ function applyFirstGen13() {
   pushLog("첫 생성(13세) 적용: APP 제외 /2, EDU=45 고정");
 }
 
-/** growth */
+/** milestone growth rules */
+function growth16() {
+  if (state.milestones.g16) { alert("이미 1차 성장(16세)을 적용했어."); return; }
+
+  const upStats = ["STR","SIZ","DEX","INT","CON"];
+  const deltas = [];
+
+  for (const s of upStats) {
+    const rng = stageRng(16, s);
+    const d = rollNdM(rng, 1, 10);
+    setSelectedRawValue(s, (state.rolls.get(s) ?? [0,0,0])[state.pick.get(s) ?? 0] + d);
+    deltas.push(`${labelByKey[s]} +${d}`);
+  }
+
+  // POW/EDU: 각각 최대 10점 내 자유
+  const powAdd = promptIntInRange("16세 성장: 정신력(POW) +0~+10 중 얼마 올릴래?", 0, 10, 0);
+  if (powAdd === null) return;
+  const eduAdd = promptIntInRange("16세 성장: 교육(EDU) +0~+10 중 얼마 올릴래?", 0, 10, 0);
+  if (eduAdd === null) return;
+
+  setSelectedRawValue("POW", (state.rolls.get("POW") ?? [0,0,0])[state.pick.get("POW") ?? 0] + powAdd);
+  setSelectedRawValue("EDU", (state.rolls.get("EDU") ?? [0,0,0])[state.pick.get("EDU") ?? 0] + eduAdd);
+  deltas.push(`정신력 +${powAdd}`, `교육 +${eduAdd}`);
+
+  state.milestones.g16 = true;
+  renderAll();
+  pushLog(`1차 성장(16세) 적용: ${deltas.join(", ")}`);
+}
+
+function growth19() {
+  if (state.milestones.g19) { alert("이미 2차 성장(19세)을 적용했어."); return; }
+
+  const stats = ["STR","SIZ","DEX","INT","CON"];
+  const deltas = [];
+
+  for (const s of stats) {
+    const rng = stageRng(19, s);
+    const d = rollNdM(rng, 1, 10);
+    const signed = pickSignForDelta(s, d);
+    if (signed === null) return;
+    const cur = (state.rolls.get(s) ?? [0,0,0])[state.pick.get(s) ?? 0];
+    setSelectedRawValue(s, cur + signed);
+    deltas.push(`${labelByKey[s]} ${signed >= 0 ? "+" : ""}${signed}`);
+  }
+
+  // POW/EDU: 각 10점씩 향상
+  const powCur = (state.rolls.get("POW") ?? [0,0,0])[state.pick.get("POW") ?? 0];
+  const eduCur = (state.rolls.get("EDU") ?? [0,0,0])[state.pick.get("EDU") ?? 0];
+  setSelectedRawValue("POW", powCur + 10);
+  setSelectedRawValue("EDU", eduCur + 10);
+  deltas.push("정신력 +10", "교육 +10");
+
+  state.milestones.g19 = true;
+  renderAll();
+  pushLog(`2차 성장(19세) 적용: ${deltas.join(", ")}`);
+}
+
+function parseStatCsv(input) {
+  const items = input.split(",").map((x) => x.trim().toUpperCase()).filter((x) => x.length > 0);
+  const unique = [];
+  for (const it of items) {
+    if (!statListForChoice.includes(it)) continue;
+    if (!unique.includes(it)) unique.push(it);
+  }
+  return unique;
+}
+
+function growth22() {
+  if (state.milestones.g22) { alert("이미 3차 성장(22세)을 적용했어."); return; }
+
+  // 4가지 선택: 1d10 (하락도 가능)
+  const raw4 = prompt(
+    `22세 성장: 1D10 올릴(또는 내릴) 특성 4개를 콤마로 입력\n예: STR,SIZ,DEX,INT\n가능: ${statListForChoice.join(", ")}`,
+    "STR,SIZ,DEX,INT"
+  );
+  if (raw4 === null) return;
+  const chosen4 = parseStatCsv(raw4);
+  if (chosen4.length !== 4) { alert("정확히 4개를 입력해줘."); return; }
+
+  const deltas = [];
+
+  for (const s of chosen4) {
+    const rng = stageRng(22, "PICK_" + s);
+    const d = rollNdM(rng, 1, 10);
+    const signed = pickSignForDelta(s, d);
+    if (signed === null) return;
+    const cur = (state.rolls.get(s) ?? [0,0,0])[state.pick.get(s) ?? 0];
+    setSelectedRawValue(s, cur + signed);
+    deltas.push(`${labelByKey[s] ?? s} ${signed >= 0 ? "+" : ""}${signed}`);
+  }
+
+  // 그 외 3가지: 향상 판정 성공 시 +1d10 (여긴 하락 언급 없음 -> +만)
+  const remaining = statListForChoice.filter((k) => !chosen4.includes(k));
+  const raw3 = prompt(
+    `22세 성장: 향상 판정할 특성 3개를 콤마로 입력\n(성공한 것만 +1D10)\n가능(선택4 제외): ${remaining.join(", ")}`,
+    remaining.slice(0,3).join(",")
+  );
+  if (raw3 === null) return;
+  const check3 = parseStatCsv(raw3).filter((k) => remaining.includes(k));
+  if (check3.length !== 3) { alert("정확히 3개를 입력해줘."); return; }
+
+  for (const s of check3) {
+    const ok = promptYesNo(`${labelByKey[s] ?? s} 향상 판정 성공?`, true);
+    if (ok === null) return;
+    if (!ok) { deltas.push(`${labelByKey[s] ?? s} 실패(변화없음)`); continue; }
+
+    const rng = stageRng(22, "CHK_" + s);
+    const d = rollNdM(rng, 1, 10);
+    const cur = (state.rolls.get(s) ?? [0,0,0])[state.pick.get(s) ?? 0];
+    setSelectedRawValue(s, cur + d);
+    deltas.push(`${labelByKey[s] ?? s} +${d}(성공)`);
+  }
+
+  state.milestones.g22 = true;
+  renderAll();
+  pushLog(`3차 성장(22세) 적용: ${deltas.join(", ")}`);
+}
+
+function growth25() {
+  if (state.milestones.g25) { alert("이미 4차 성장(25세)을 적용했어."); return; }
+
+  const raw = prompt(
+    `25세 성장: 향상 판정할 특성을 콤마로 입력 (성공한 것만 +1D10)\n예: STR,DEX,POW\n가능: ${statListForChoice.join(", ")}`,
+    "STR,DEX,INT"
+  );
+  if (raw === null) return;
+  const targets = parseStatCsv(raw);
+  if (targets.length === 0) { alert("최소 1개는 입력해줘."); return; }
+
+  const deltas = [];
+  for (const s of targets) {
+    const ok = promptYesNo(`${labelByKey[s] ?? s} 향상 판정 성공?`, true);
+    if (ok === null) return;
+    if (!ok) { deltas.push(`${labelByKey[s] ?? s} 실패(변화없음)`); continue; }
+    const rng = stageRng(25, "CHK_" + s);
+    const d = rollNdM(rng, 1, 10);
+    const cur = (state.rolls.get(s) ?? [0,0,0])[state.pick.get(s) ?? 0];
+    setSelectedRawValue(s, cur + d);
+    deltas.push(`${labelByKey[s] ?? s} +${d}(성공)`);
+  }
+
+  // POW/EDU: 원할 경우 1d10씩 상승
+  const powWant = promptYesNo("25세 성장: 정신력(POW) 1D10 상승할래?", false);
+  if (powWant === null) return;
+  if (powWant) {
+    const rng = stageRng(25, "POW_OPT");
+    const d = rollNdM(rng, 1, 10);
+    const cur = (state.rolls.get("POW") ?? [0,0,0])[state.pick.get("POW") ?? 0];
+    setSelectedRawValue("POW", cur + d);
+    deltas.push(`정신력 +${d}`);
+  }
+
+  const eduWant = promptYesNo("25세 성장: 교육(EDU) 1D10 상승할래?", false);
+  if (eduWant === null) return;
+  if (eduWant) {
+    const rng = stageRng(25, "EDU_OPT");
+    const d = rollNdM(rng, 1, 10);
+    const cur = (state.rolls.get("EDU") ?? [0,0,0])[state.pick.get("EDU") ?? 0];
+    setSelectedRawValue("EDU", cur + d);
+    deltas.push(`교육 +${d}`);
+  }
+
+  state.milestones.g25 = true;
+  renderAll();
+  pushLog(`4차 성장(25세) 적용: ${deltas.join(", ")}`);
+}
+
+/** scenario growth (skill points) */
 function scenarioGrowthRoll() {
   if (state.growthTotal >= GROWTH_LIMIT) { alert("더 이상 성장할 수 없습니다. (최대 120점)"); return; }
   const nextScenario = state.scenarioCount + 1;
@@ -413,7 +690,7 @@ function scenarioGrowthRoll() {
   state.growthPool += gained;
 
   renderKpi(); updateOutputs(); autoSave();
-  pushLog(`${state.scenarioCount}회차 성장: 3D10=${rolled} → +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT})`);
+  pushLog(`${state.scenarioCount}회차 시나리오 성장: 3D10=${rolled} → +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT})`);
 }
 function scenarioGrowthManual() {
   if (state.growthTotal >= GROWTH_LIMIT) { alert("더 이상 성장할 수 없습니다. (최대 120점)"); return; }
@@ -428,7 +705,7 @@ function scenarioGrowthManual() {
   state.growthPool += gained;
 
   renderKpi(); updateOutputs(); autoSave();
-  pushLog(`성장 수동추가: +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT})`);
+  pushLog(`시나리오 성장 수동추가: +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT})`);
 }
 
 /** UI render */
@@ -478,6 +755,7 @@ function renderStatsGrid() {
     line.appendChild(name);
     line.appendChild(choices);
 
+    // APP 직접 조정(자유)
     if (key === "APP") {
       const box = document.createElement("div");
       box.style.display = "flex";
@@ -499,10 +777,7 @@ function renderStatsGrid() {
         const v = Math.floor(n);
         const applied = isFreeAppEnabled() ? v : capValue("APP", v);
 
-        const idx = state.pick.get("APP") ?? 0;
-        const arr = state.rolls.get("APP") ?? [0,0,0];
-        arr[idx] = applied;
-        state.rolls.set("APP", arr);
+        setSelectedRawValue("APP", applied);
 
         renderKpi();
         updateOutputs();
@@ -525,6 +800,7 @@ function buildSummaryText() {
   lines.push("탐사자 요약");
   lines.push(`seed: ${state.seed}`);
   if (state.isFirstGenApplied) lines.push("첫 생성(13세): APP 제외 /2, EDU=45 고정");
+  lines.push(`마일스톤: 16=${state.milestones.g16 ? "O":"-" } / 19=${state.milestones.g19 ? "O":"-" } / 22=${state.milestones.g22 ? "O":"-" } / 25=${state.milestones.g25 ? "O":"-" }`);
   lines.push(`기능점수 예산: ${computeSkillBudgetText()}`);
   lines.push("");
 
@@ -536,16 +812,17 @@ function buildSummaryText() {
   for (const k of DETAIL_KEYS) lines.push(`${findGroupLabel(k)}: ${getSelectedValue(k)}`);
 
   lines.push("");
-  lines.push("[성장]");
+  lines.push("[시나리오 성장(기능점수)]");
   lines.push(`회차: ${state.scenarioCount}`);
   lines.push(`누적 성장: ${state.growthTotal}/${GROWTH_LIMIT}`);
-  lines.push(`(참고) 성장으로 얻은 기능점수 누적 한도: 120`);
-
+  lines.push(`성장 풀(배분용): ${state.growthPool}`);
   return lines.join("\n");
 }
+
 function buildRoll20Text() {
   const parts = [];
   parts.push(`탐사자 만들기 결과 (seed=${state.seed})`);
+  parts.push(`마일스톤: 16=${state.milestones.g16 ? "O":"-"} / 19=${state.milestones.g19 ? "O":"-"} / 22=${state.milestones.g22 ? "O":"-"} / 25=${state.milestones.g25 ? "O":"-"}`);
   parts.push(`기능점수 예산: ${computeSkillBudgetText()}`);
   parts.push(
     `특성치: STR ${getSelectedValue("STR")} / CON ${getSelectedValue("CON")} / SIZ ${getSelectedValue("SIZ")} / DEX ${getSelectedValue("DEX")} / INT ${getSelectedValue("INT")} / APP ${getSelectedValue("APP")} / POW ${getSelectedValue("POW")} / EDU ${getSelectedValue("EDU")} / LUCK ${getSelectedValue("LUCK")}`
@@ -553,9 +830,10 @@ function buildRoll20Text() {
   parts.push(
     `세부(1d10): 신념 ${getSelectedValue("BELIEF")}, 사람 ${getSelectedValue("PERSON")}, 장소 ${getSelectedValue("PLACE")}, 물건 ${getSelectedValue("THING")}, 성격 ${getSelectedValue("TRAIT")}`
   );
-  parts.push(`성장: ${state.scenarioCount}회차, 누적 ${state.growthTotal}/${GROWTH_LIMIT}`);
+  parts.push(`시나리오 성장: ${state.scenarioCount}회차, 누적 ${state.growthTotal}/${GROWTH_LIMIT}, 풀 ${state.growthPool}`);
   return parts.join("\n");
 }
+
 function updateOutputs() {
   const sum = document.getElementById("outSummary");
   const r20 = document.getElementById("outRoll20");
@@ -582,18 +860,20 @@ function exportJsonObject() {
   for (const [k, v] of state.pick.entries()) pick[k] = v;
 
   return {
-    version: 5,
+    version: 6,
     savedAt: new Date().toISOString(),
     seed: state.seed,
     isFirstGenApplied: state.isFirstGenApplied,
     scenarioCount: state.scenarioCount,
     growthTotal: state.growthTotal,
     growthPool: state.growthPool,
+    milestones: state.milestones,
     ui: { cap50: getCap50Enabled(), freeApp: isFreeAppEnabled() },
     rolls, pick,
     log: state.log,
   };
 }
+
 function validateImported(obj) {
   if (!obj || typeof obj !== "object") return "JSON 형식이 올바르지 않아.";
   if (typeof obj.seed !== "number" || !Number.isFinite(obj.seed)) return "seed가 없어.";
@@ -601,6 +881,7 @@ function validateImported(obj) {
   if (!obj.pick || typeof obj.pick !== "object") return "pick이 없어.";
   return null;
 }
+
 function loadFromObject(obj) {
   const err = validateImported(obj);
   if (err) { alert(err); return; }
@@ -611,6 +892,14 @@ function loadFromObject(obj) {
   state.growthTotal = Math.max(0, Math.floor(Number(obj.growthTotal) || 0));
   state.growthPool = Math.max(0, Math.floor(Number(obj.growthPool) || 0));
   state.log = Array.isArray(obj.log) ? obj.log.map(String) : [];
+  state.milestones = obj.milestones && typeof obj.milestones === "object"
+    ? {
+        g16: !!obj.milestones.g16,
+        g19: !!obj.milestones.g19,
+        g22: !!obj.milestones.g22,
+        g25: !!obj.milestones.g25
+      }
+    : { g16:false, g19:false, g22:false, g25:false };
 
   const capEl = document.getElementById("cap50");
   const appEl = document.getElementById("freeApp");
@@ -636,6 +925,7 @@ function loadFromObject(obj) {
   autoSave();
   pushLog("JSON 불러오기 완료");
 }
+
 function downloadJson() {
   const obj = exportJsonObject();
   const text = JSON.stringify(obj, null, 2);
@@ -658,10 +948,12 @@ function downloadJson() {
 
   pushLog("JSON 저장(다운로드)");
 }
+
 function autoSave() {
   try { localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(exportJsonObject())); }
   catch { /* ignore */ }
 }
+
 function loadAutoSaveIfAny() {
   try {
     const raw = localStorage.getItem(AUTO_SAVE_KEY);
@@ -676,6 +968,9 @@ function loadAutoSaveIfAny() {
     state.growthTotal = Math.max(0, Math.floor(Number(obj.growthTotal) || 0));
     state.growthPool = Math.max(0, Math.floor(Number(obj.growthPool) || 0));
     state.log = Array.isArray(obj.log) ? obj.log.map(String) : [];
+    state.milestones = obj.milestones && typeof obj.milestones === "object"
+      ? { g16:!!obj.milestones.g16, g19:!!obj.milestones.g19, g22:!!obj.milestones.g22, g25:!!obj.milestones.g25 }
+      : { g16:false, g19:false, g22:false, g25:false };
 
     const capEl = document.getElementById("cap50");
     const appEl = document.getElementById("freeApp");
@@ -698,6 +993,7 @@ function loadAutoSaveIfAny() {
     return true;
   } catch { return false; }
 }
+
 function clearAutoSave() {
   try { localStorage.removeItem(AUTO_SAVE_KEY); alert("자동저장 삭제 완료"); }
   catch { alert("자동저장 삭제 실패"); }
@@ -722,6 +1018,7 @@ function resetAll() {
   state.growthTotal = 0;
   state.growthPool = 0;
   state.log = [];
+  state.milestones = { g16:false, g19:false, g22:false, g25:false };
   doRoll(seed);
   pushLog("전체 리셋");
 }
@@ -729,6 +1026,12 @@ function resetAll() {
 /** wire */
 document.getElementById("rollBtn").addEventListener("click", () => doRoll(makeSeed()));
 document.getElementById("firstGenBtn").addEventListener("click", () => applyFirstGen13());
+
+document.getElementById("g16Btn").addEventListener("click", () => growth16());
+document.getElementById("g19Btn").addEventListener("click", () => growth19());
+document.getElementById("g22Btn").addEventListener("click", () => growth22());
+document.getElementById("g25Btn").addEventListener("click", () => growth25());
+
 document.getElementById("growthRollBtn").addEventListener("click", () => scenarioGrowthRoll());
 document.getElementById("growthManualBtn").addEventListener("click", () => scenarioGrowthManual());
 document.getElementById("resetBtn").addEventListener("click", () => resetAll());
@@ -771,6 +1074,9 @@ document.getElementById("clearAutoSaveBtn").addEventListener("click", () => clea
 
 /** init */
 (function init() {
+  const rulesEl = document.getElementById("rulesBox");
+  if (rulesEl) rulesEl.textContent = RULES_TEXT;
+
   const restored = loadAutoSaveIfAny();
   if (restored) return;
 
