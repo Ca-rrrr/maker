@@ -3,76 +3,363 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CoC 탐사자 3회 굴림</title>
+  <title>CoC 탐사자 메이커</title>
   <style>
-    body { font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif; margin: 24px; background:#f6f7fb; }
-    .wrap { max-width: 980px; margin: 0 auto; }
-    h1 { margin: 0 0 12px; }
-    .row { display:flex; gap:16px; flex-wrap:wrap; }
-    .card { background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:12px; padding:14px; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
-    .card.wide { flex: 1 1 580px; }
-    .card.side { flex: 1 1 320px; }
-    button { border:0; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:700; }
-    button.primary { background:#111827; color:#fff; }
-    button.ghost { background:#eef2ff; }
-    .grid { display:grid; grid-template-columns: 1fr; gap:10px; margin-top:12px; }
-    .stat { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    .name { font-weight:800; width: 110px; }
-    .choices { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
-    .pill { border:1px solid rgba(0,0,0,.12); border-radius:999px; padding:6px 10px; background:#fff; cursor:pointer; user-select:none; }
-    .pill input { margin-right:6px; }
-    .muted { color:#6b7280; font-size: 13px; }
-    textarea { width:100%; min-height: 260px; border-radius:12px; border:1px solid rgba(0,0,0,.12); padding:10px; }
-    .topbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .seed { font-size: 13px; color:#374151; }
-    code { background:#f3f4f6; padding:2px 6px; border-radius:6px; }
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#111827;
+      --muted:#6b7280;
+      --line:rgba(0,0,0,.10);
+      --shadow: 0 10px 28px rgba(0,0,0,.08);
+      --radius:14px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:24px;
+      background:var(--bg);
+      color:var(--text);
+      font-family: system-ui, -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    }
+    .wrap{ max-width: 1120px; margin:0 auto; }
+    h1{ margin: 0 0 12px; font-size: 22px; }
+    .topbar{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      margin-bottom: 14px;
+    }
+    button{
+      border:0; border-radius: 12px; padding: 10px 14px;
+      cursor:pointer; font-weight: 800;
+      background:#eef2ff;
+    }
+    button.primary{ background:#111827; color:#fff; }
+    button.warn{ background:#fee2e2; }
+    button:active{ transform: translateY(1px); }
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid var(--line);
+      border-radius: 999px; padding: 8px 12px;
+      background: rgba(255,255,255,.7);
+      font-size: 13px;
+    }
+    .pill input{ margin:0; }
+    .row{ display:flex; gap:16px; flex-wrap:wrap; }
+    .card{
+      background:var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+    .wide{ flex: 1 1 650px; }
+    .side{ flex: 1 1 420px; }
+    .muted{ color:var(--muted); font-size: 13px; }
+    .section-title{
+      font-weight: 900;
+      margin: 0 0 10px;
+      display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    }
+    .section-title small{ font-weight:600; color:var(--muted); }
+    .grid{ display:grid; grid-template-columns: 1fr; gap:10px; }
+    .stat-line{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border:1px solid rgba(0,0,0,.06);
+      background:#fff;
+    }
+    .stat-name{ font-weight: 900; width: 160px; }
+    .choices{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .choice{
+      border:1px solid rgba(0,0,0,.12);
+      border-radius: 999px;
+      padding: 7px 10px;
+      display:inline-flex; align-items:center; gap:8px;
+      cursor:pointer;
+      user-select:none;
+      background:#fff;
+    }
+    .choice input{ margin:0; }
+    .inline{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    }
+    textarea{
+      width:100%;
+      border-radius: 14px;
+      border:1px solid rgba(0,0,0,.12);
+      padding: 10px;
+      min-height: 180px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      background:#fbfbff;
+    }
+    .two-col{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 900px){
+      .two-col{ grid-template-columns: 1fr; }
+      .stat-name{ width: 120px; }
+    }
+    table{
+      width:100%;
+      border-collapse: collapse;
+      border-radius: 12px;
+      overflow:hidden;
+      border:1px solid rgba(0,0,0,.10);
+    }
+    th, td{
+      padding: 10px 10px;
+      border-bottom:1px solid rgba(0,0,0,.08);
+      text-align:left;
+      font-size: 13px;
+    }
+    th{ background:#f3f4f6; font-weight:900; }
+    tr:last-child td{ border-bottom:0; }
+    .num{ text-align:right; white-space:nowrap; }
+    input[type="number"]{
+      width: 90px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border:1px solid rgba(0,0,0,.18);
+      font-size: 13px;
+    }
+    input[type="text"]{
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border:1px solid rgba(0,0,0,.18);
+      font-size: 13px;
+    }
+    .kpi{
+      display:flex; gap:10px; flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .kpi .box{
+      flex:1 1 160px;
+      border:1px solid rgba(0,0,0,.10);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background:#fff;
+    }
+    .kpi .label{ color:var(--muted); font-size:12px; }
+    .kpi .value{ font-weight: 950; font-size: 18px; }
+    .log{
+      margin-top: 10px;
+      border:1px solid rgba(0,0,0,.10);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background:#fff;
+      max-height: 240px;
+      overflow:auto;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    /* print */
+    @media print{
+      body{ background:#fff; margin: 12mm; }
+      .topbar, .muted, .pill, button{ display:none !important; }
+      .card{ box-shadow:none; }
+      textarea{ min-height: 120px; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>탐사자 만들기 (3회 굴림)</h1>
+    <h1>CoC 탐사자 메이커</h1>
+
     <div class="topbar">
-      <button class="primary" id="rollBtn">3회 굴림</button>
-      <button class="ghost" id="copyBtn">결과 복사</button>
-      <span class="seed muted" id="seedView"></span>
+      <button class="primary" id="rollBtn">🎲 3회 굴림</button>
+      <button id="firstGenBtn">🧒 첫 생성 (13세 적용)</button>
+      <button id="growthRollBtn">📈 시나리오 성장 (3D10)</button>
+      <button id="growthManualBtn">✍️ 성장 수동추가</button>
+      <button id="resetBtn" class="warn">🧹 리셋</button>
+
+      <span class="pill"><b>seed</b> <span id="seedView">-</span></span>
+      <span class="pill"><input type="checkbox" id="cap50" checked> <label for="cap50">특성/기능 최대 50</label></span>
+      <span class="pill"><input type="checkbox" id="freeApp" checked> <label for="freeApp">APP(외모) 자유 조정</label></span>
+
+      <button id="copySummaryBtn">📋 요약 복사</button>
+      <button id="copyRoll20Btn">💬 Roll20용 복사</button>
+      <button id="printBtn">🖨️ 프린트(PDF)</button>
     </div>
-    <div class="row" style="margin-top:14px;">
+
+    <div class="row">
       <div class="card wide">
-        <div class="muted">능력치(선택) + 세부사항(룰북 43~45p 표 기반: 1d10)</div>
-        <div class="grid" id="grid"></div>
+        <div class="section-title">
+          <span>특성치 / 세부사항 (3회 후보 선택)</span>
+          <small class="muted">첫 생성(13세): (주사위값)/2, EDU=45 고정</small>
+        </div>
+
+        <div class="grid" id="statsGrid"></div>
+
+        <div class="kpi">
+          <div class="box">
+            <div class="label">기능 성장 포인트(누적)</div>
+            <div class="value"><span id="growthTotal">0</span> / <span id="growthLimit">120</span></div>
+          </div>
+          <div class="box">
+            <div class="label">현재 배분 가능한 포인트(풀)</div>
+            <div class="value"><span id="growthPool">0</span></div>
+          </div>
+          <div class="box">
+            <div class="label">회차</div>
+            <div class="value"><span id="scenarioCount">0</span></div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;" class="section-title">
+          <span>기능(스킬) 배분</span>
+          <small class="muted">성장 포인트 풀에서 배분 (CAP/APP 규칙 자동 적용)</small>
+        </div>
+
+        <div class="two-col">
+          <div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:46%;">기능</th>
+                  <th class="num" style="width:18%;">현재</th>
+                  <th class="num" style="width:18%;">증가</th>
+                  <th class="num" style="width:18%;">적용</th>
+                </tr>
+              </thead>
+              <tbody id="skillsBody"></tbody>
+            </table>
+
+            <div class="inline" style="margin-top:10px;">
+              <button id="applySkillBtn" class="primary">✅ 증가 적용</button>
+              <button id="clearDeltaBtn">↩️ 증가값 초기화</button>
+            </div>
+
+            <div class="inline" style="margin-top:10px;">
+              <div style="flex:1 1 220px;">
+                <div class="muted" style="margin:0 0 6px;">새 기능 추가</div>
+                <input type="text" id="newSkillName" placeholder="예: 은신" />
+              </div>
+              <div>
+                <div class="muted" style="margin:0 0 6px;">초기값</div>
+                <input type="number" id="newSkillBase" value="0" min="0" max="50" />
+              </div>
+              <div style="align-self:flex-end;">
+                <button id="addSkillBtn">➕ 추가</button>
+              </div>
+            </div>
+
+            <div class="muted" style="margin-top:8px;">
+              기능 목록/초기값은 자유롭게 편집 가능. (룰북 기본치가 필요하면 네 캠페인 기준에 맞춰 바꾸는 게 안전해.)
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title">
+              <span>성장 로그</span>
+              <small class="muted">획득/배분 기록</small>
+            </div>
+            <div class="log" id="logBox"></div>
+
+            <div style="margin-top:12px;" class="section-title">
+              <span>결과 출력</span>
+              <small class="muted">복사용 텍스트</small>
+            </div>
+
+            <div class="muted" style="margin:0 0 6px;">요약</div>
+            <textarea id="outSummary" readonly></textarea>
+
+            <div class="muted" style="margin:10px 0 6px;">Roll20 채팅용</div>
+            <textarea id="outRoll20" readonly></textarea>
+          </div>
+        </div>
       </div>
+
       <div class="card side">
-        <div style="font-weight:900; margin-bottom:8px;">최종 선택 결과</div>
-        <textarea id="out" readonly></textarea>
-        <div class="muted" style="margin-top:8px;">링크로 결과 재현하려면 <code>?seed=숫자</code></div>
+        <div class="section-title">
+          <span>수동 조정(백스토리 합의)</span>
+          <small class="muted">토글/상한 규칙 적용</small>
+        </div>
+
+        <div class="muted" style="margin-bottom:8px;">
+          “주사위 없이 합의”를 위해 수동으로 값을 조정할 수 있어. (CAP50 ON이면 자동으로 50까지만)
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>항목</th>
+              <th class="num">현재</th>
+              <th class="num">수정</th>
+            </tr>
+          </thead>
+          <tbody id="manualStatsBody"></tbody>
+        </table>
+
+        <div class="inline" style="margin-top:10px;">
+          <button id="applyManualStatsBtn" class="primary">✅ 수동값 적용</button>
+        </div>
+
+        <div style="margin-top:14px;" class="section-title">
+          <span>세부사항(1d10)</span>
+          <small class="muted">룰북 표 문구는 직접 작성한 것만 권장</small>
+        </div>
+        <div class="muted">
+          현재는 숫자만 제공. 네가 “1~10 문구”를 직접 써서 보내주면, 그 문구로 매핑해서 웹에서 바로 문장 출력 가능.
+        </div>
+
+        <div style="margin-top:14px;" class="section-title">
+          <span>배포 체크(404 방지)</span>
+          <small class="muted">GitHub Pages</small>
+        </div>
+        <div class="muted">
+          레포 루트에 <b>index.html</b> 있어야 하고, Settings → Pages에서 main / root로 켜야 함.
+        </div>
       </div>
     </div>
   </div>
 
 <script>
-/** seedable RNG (Mulberry32) */
+"use strict";
+
+/** ---------- seedable RNG ---------- */
 function mulberry32(seed) {
   let a = seed >>> 0;
-  return function() {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
+  return function () {
+    a |= 0;
+    a = (a + 0x6D2B79F5) | 0;
     let t = Math.imul(a ^ (a >>> 15), 1 | a);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+function hash32(a, b) {
+  // simple deterministic mixer (not crypto)
+  let x = (a ^ 0x9E3779B9) >>> 0;
+  x = Math.imul(x ^ (x >>> 16), 0x85EBCA6B) >>> 0;
+  x = (x + (b >>> 0)) >>> 0;
+  x = Math.imul(x ^ (x >>> 13), 0xC2B2AE35) >>> 0;
+  x = (x ^ (x >>> 16)) >>> 0;
+  return x;
 }
 function parseSeed() {
   const sp = new URLSearchParams(location.search);
   const s = sp.get("seed");
   if (!s) return null;
   const n = Number(s);
-  return Number.isFinite(n) ? Math.floor(n) : null;
+  if (!Number.isFinite(n)) return null;
+  return Math.floor(n);
+}
+function setSeedInUrl(seed) {
+  const url = new URL(location.href);
+  url.searchParams.set("seed", String(seed));
+  history.replaceState({}, "", url.toString());
 }
 function makeSeed() {
-  // 간단한 seed: 현재시간 기반
   return Math.floor(Date.now() % 2147483647);
 }
 
-/** dice */
+/** ---------- dice ---------- */
 function rollDie(rng, sides) {
   return Math.floor(rng() * sides) + 1;
 }
@@ -82,108 +369,114 @@ function rollNdM(rng, n, m) {
   return sum;
 }
 
-const groups = [
-  { key: "STR", label: "근력", fn: (rng) => rollNdM(rng,3,6) * 5 },
-  { key: "CON", label: "건강", fn: (rng) => rollNdM(rng,3,6) * 5 },
-  { key: "SIZ", label: "크기", fn: (rng) => (rollNdM(rng,2,6) + 6) * 5 },
-  { key: "DEX", label: "민첩성", fn: (rng) => rollNdM(rng,3,6) * 5 },
-  { key: "INT", label: "지능", fn: (rng) => (rollNdM(rng,2,6) + 6) * 5 },
-  { key: "APP", label: "외모", fn: (rng) => rollNdM(rng,3,6) * 5 },
-  { key: "POW", label: "정신력", fn: (rng) => rollNdM(rng,3,6) * 5 },
-  { key: "EDU", label: "교육", fn: (rng) => (rollNdM(rng,2,6) + 6) * 5 },
-  { key: "LUCK", label: "운", fn: (rng) => rollNdM(rng,3,6) * 5 },
+/** ---------- config ---------- */
+const GROWTH_LIMIT = 120;
+const STATS_KEYS = ["STR","CON","SIZ","DEX","INT","APP","POW","EDU","LUCK"];
+const DETAIL_KEYS = ["BELIEF","PERSON","PLACE","THING","TRAIT"];
 
-  { key: "BELIEF", label: "사상·신념(1d10)", fn: (rng) => rollNdM(rng,1,10) },
-  { key: "PERSON", label: "중요한 사람(1d10)", fn: (rng) => rollNdM(rng,1,10) },
-  { key: "PLACE", label: "의미 있는 장소(1d10)", fn: (rng) => rollNdM(rng,1,10) },
-  { key: "THING", label: "소중한 물건(1d10)", fn: (rng) => rollNdM(rng,1,10) },
-  { key: "TRAIT", label: "성격(1d10)", fn: (rng) => rollNdM(rng,1,10) },
+// stats + details (3-roll choices)
+const groups = [
+  { key: "STR", label: "근력", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
+  { key: "CON", label: "건강", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
+  { key: "SIZ", label: "크기", fn: (rng) => (rollNdM(rng, 2, 6) + 6) * 5 },
+  { key: "DEX", label: "민첩성", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
+  { key: "INT", label: "지능", fn: (rng) => (rollNdM(rng, 2, 6) + 6) * 5 },
+  { key: "APP", label: "외모(APP)", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
+  { key: "POW", label: "정신력", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
+  { key: "EDU", label: "교육(EDU)", fn: (rng) => (rollNdM(rng, 2, 6) + 6) * 5 },
+  { key: "LUCK", label: "운", fn: (rng) => rollNdM(rng, 3, 6) * 5 },
+
+  { key: "BELIEF", label: "사상·신념 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
+  { key: "PERSON", label: "중요한 사람 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
+  { key: "PLACE", label: "의미 있는 장소 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
+  { key: "THING", label: "소중한 물건 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
+  { key: "TRAIT", label: "성격 (1d10)", fn: (rng) => rollNdM(rng, 1, 10) },
 ];
 
+/** ---------- state ---------- */
 const state = {
   seed: 0,
-  rolls: new Map(), // key -> number[]
-  pick: new Map(),  // key -> index(0..2)
+  rolls: new Map(),    // key -> number[3]
+  pick: new Map(),     // key -> 0..2
+  isFirstGenApplied: false,
+
+  scenarioCount: 0,
+  growthTotal: 0,      // 누적 획득
+  growthPool: 0,       // 현재 배분 가능 풀
+
+  // skills
+  skills: new Map(),   // name -> { base:number, delta:number }
+  // log entries
+  log: [],             // string[]
 };
 
-function render() {
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
-
-  for (const g of groups) {
-    const values = state.rolls.get(g.key) ?? [0,0,0];
-    const picked = state.pick.get(g.key) ?? 0;
-
-    const line = document.createElement("div");
-    line.className = "stat";
-
-    const name = document.createElement("div");
-    name.className = "name";
-    name.textContent = g.label;
-
-    const choices = document.createElement("div");
-    choices.className = "choices";
-
-    values.forEach((v, idx) => {
-      const lab = document.createElement("label");
-      lab.className = "pill";
-      const radio = document.createElement("input");
-      radio.type = "radio";
-      radio.name = `pick_${g.key}`;
-      radio.checked = idx === picked;
-      radio.addEventListener("change", () => {
-        state.pick.set(g.key, idx);
-        updateOutput();
-      });
-      lab.appendChild(radio);
-      const txt = document.createTextNode(String(v));
-      lab.appendChild(txt);
-      choices.appendChild(lab);
-    });
-
-    line.appendChild(name);
-    line.appendChild(choices);
-    grid.appendChild(line);
+// 기본 기능 목록(캠페인에 맞게 자유 수정 가능)
+function seedDefaultSkills() {
+  state.skills.clear();
+  const defaults = [
+    ["관찰력", 0],
+    ["듣기", 0],
+    ["심리학", 0],
+    ["은신", 0],
+    ["설득", 0],
+    ["말재주", 0],
+    ["위협", 0],
+    ["자료조사", 0],
+    ["도서관이용", 0],
+    ["응급처치", 0],
+    ["정신분석", 0],
+    ["역사", 0],
+    ["자연사", 0],
+    ["컴퓨터사용", 0],
+    ["전자공학", 0],
+  ];
+  for (const [name, base] of defaults) {
+    state.skills.set(name, { base: base, delta: 0 });
   }
-
-  updateOutput();
 }
 
-function updateOutput() {
-  const lines = [];
-  lines.push(`탐사자 만들기 (3회 굴림)`);
-  lines.push(`seed: ${state.seed}`);
-  lines.push("");
-
-  // 능력치 9개
-  const stats = ["STR","CON","SIZ","DEX","INT","APP","POW","EDU","LUCK"];
-  for (const k of stats) {
-    const g = groups.find(x => x.key === k);
-    if (!g) continue;
-    const values = state.rolls.get(k) ?? [0,0,0];
-    const picked = state.pick.get(k) ?? 0;
-    lines.push(`${g.label}: ${values[picked]}`);
-  }
-
-  lines.push("");
-  lines.push("세부 사항 (1d10):");
-  const details = ["BELIEF","PERSON","PLACE","THING","TRAIT"];
-  for (const k of details) {
-    const g = groups.find(x => x.key === k);
-    if (!g) continue;
-    const values = state.rolls.get(k) ?? [0,0,0];
-    const picked = state.pick.get(k) ?? 0;
-    lines.push(`- ${g.label}: ${values[picked]}`);
-  }
-
-  document.getElementById("out").value = lines.join("\n");
+/** ---------- helpers ---------- */
+function getCap50Enabled() {
+  const el = document.getElementById("cap50");
+  return !!el && el.checked;
+}
+function isFreeAppEnabled() {
+  const el = document.getElementById("freeApp");
+  return !!el && el.checked;
+}
+function capValue(key, v) {
+  const capOn = getCap50Enabled();
+  if (!capOn) return v;
+  if (key === "APP" && isFreeAppEnabled()) return v; // APP 자유
+  return Math.min(v, 50);
+}
+function findGroupLabel(key) {
+  const g = groups.find((x) => x.key === key);
+  return g ? g.label : key;
+}
+function fmt(n) {
+  return String(n);
+}
+function pushLog(line) {
+  const now = new Date();
+  const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  state.log.unshift(`[${ts}] ${line}`);
+  renderLog();
+}
+function renderLog() {
+  const box = document.getElementById("logBox");
+  if (!box) return;
+  box.textContent = state.log.join("\n");
 }
 
+/** ---------- rolling ---------- */
 function doRoll(seed) {
   state.seed = seed;
-  const rng = mulberry32(seed);
   state.rolls.clear();
   state.pick.clear();
+  state.isFirstGenApplied = false;
+
+  const rng = mulberry32(seed);
 
   for (const g of groups) {
     const arr = [g.fn(rng), g.fn(rng), g.fn(rng)];
@@ -191,39 +484,577 @@ function doRoll(seed) {
     state.pick.set(g.key, 0);
   }
 
-  document.getElementById("seedView").textContent = `seed = ${seed}`;
-  render();
+  // growth state does not reset on roll by default (Roll20처럼 수치만 다시 뽑는 걸 가정)
+  // 하지만 원하면 리셋 버튼으로 전체 초기화 가능.
+  setSeedInUrl(seed);
+  renderAll();
+  pushLog(`3회 굴림 실행 (seed=${seed})`);
 }
 
-document.getElementById("rollBtn").addEventListener("click", () => {
-  const seed = makeSeed();
-  const url = new URL(location.href);
-  url.searchParams.set("seed", String(seed));
-  history.replaceState({}, "", url.toString());
-  doRoll(seed);
-});
+function applyFirstGeneration() {
+  // 첫 생성(13세) 규칙:
+  // - 모든 특성치 주사위 결과 /2 (내림)
+  // - EDU = 45 고정
+  // - CAP50 ON이면 상한 자동 적용
+  // - APP는 자유조정이므로 CAP50에서 제외 가능(토글)
+  for (const k of STATS_KEYS) {
+    if (k === "EDU") {
+      state.rolls.set(k, [45,45,45]);
+      state.pick.set(k, 0);
+      continue;
+    }
+    const values = state.rolls.get(k);
+    if (!values) continue;
 
-document.getElementById("copyBtn").addEventListener("click", async () => {
-  const text = document.getElementById("out").value;
+    const halved = values.map((v) => Math.floor(v / 2));
+    state.rolls.set(k, halved);
+    state.pick.set(k, 0);
+  }
+  state.isFirstGenApplied = true;
+  renderAll();
+  pushLog(`첫 생성(13세) 적용: (주사위값)/2, EDU=45 고정`);
+}
+
+/** ---------- growth (scenario end) ---------- */
+function scenarioGrowthRoll() {
+  if (state.growthTotal >= GROWTH_LIMIT) {
+    alert("더 이상 성장할 수 없습니다. (최대 120점)");
+    return;
+  }
+
+  // 재현 가능하게: seed + (scenarioCount+1)으로 결정
+  const nextScenario = state.scenarioCount + 1;
+  const rng = mulberry32(hash32(state.seed, nextScenario));
+
+  const rolled = rollNdM(rng, 3, 10);
+  const remaining = GROWTH_LIMIT - state.growthTotal;
+  const gained = Math.min(rolled, remaining);
+
+  state.scenarioCount = nextScenario;
+  state.growthTotal += gained;
+  state.growthPool += gained;
+
+  renderKpi();
+  renderSkills();
+  updateOutputs();
+
+  pushLog(`${state.scenarioCount}회차 성장: 3D10=${rolled} → +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT}, 풀 ${state.growthPool})`);
+}
+
+function scenarioGrowthManual() {
+  if (state.growthTotal >= GROWTH_LIMIT) {
+    alert("더 이상 성장할 수 없습니다. (최대 120점)");
+    return;
+  }
+
+  const raw = prompt("수동으로 추가할 성장 포인트를 입력해줘 (0~120 남은 범위 내).", "10");
+  if (raw === null) return;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) {
+    alert("숫자를 올바르게 입력해줘.");
+    return;
+  }
+
+  const remaining = GROWTH_LIMIT - state.growthTotal;
+  const gained = Math.min(Math.floor(n), remaining);
+
+  // 수동 추가는 회차와 별개로 넣을 수도 있는데, 편의상 회차는 그대로 두고 풀/누적만 증가
+  state.growthTotal += gained;
+  state.growthPool += gained;
+
+  renderKpi();
+  renderSkills();
+  updateOutputs();
+
+  pushLog(`성장 수동추가: +${gained} (누적 ${state.growthTotal}/${GROWTH_LIMIT}, 풀 ${state.growthPool})`);
+}
+
+/** ---------- skills ---------- */
+function getSkillCap() {
+  return getCap50Enabled() ? 50 : 9999;
+}
+function addSkill(name, base) {
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  if (state.skills.has(trimmed)) {
+    alert("이미 있는 기능명이야.");
+    return;
+  }
+  const cap = getSkillCap();
+  const b = Math.max(0, Math.min(Math.floor(base), cap));
+  state.skills.set(trimmed, { base: b, delta: 0 });
+  renderSkills();
+  updateOutputs();
+  pushLog(`기능 추가: ${trimmed} (기본 ${b})`);
+}
+function removeSkill(name) {
+  if (!state.skills.has(name)) return;
+  state.skills.delete(name);
+  renderSkills();
+  updateOutputs();
+  pushLog(`기능 삭제: ${name}`);
+}
+function clearSkillDeltas() {
+  for (const v of state.skills.values()) v.delta = 0;
+  renderSkills();
+}
+function applySkillDeltas() {
+  if (state.growthPool <= 0) {
+    alert("배분할 성장 포인트 풀이 없어.");
+    return;
+  }
+
+  // 총 소모 계산
+  let spent = 0;
+  for (const v of state.skills.values()) {
+    const d = Math.max(0, Math.floor(v.delta));
+    spent += d;
+  }
+  if (spent <= 0) {
+    alert("증가값이 없어.");
+    return;
+  }
+  if (spent > state.growthPool) {
+    alert(`증가 합계(${spent})가 풀(${state.growthPool})을 초과했어.`);
+    return;
+  }
+
+  const cap = getSkillCap();
+  // 적용 + cap 체크
+  for (const [name, v] of state.skills.entries()) {
+    const d = Math.max(0, Math.floor(v.delta));
+    if (d <= 0) continue;
+
+    const before = v.base;
+    let after = before + d;
+
+    // APP 예외는 "특성치"에 해당이고, 기능은 cap50이면 그냥 50 cap 적용
+    if (getCap50Enabled()) after = Math.min(after, cap);
+
+    const applied = after - before;
+    if (applied < d) {
+      // cap 때문에 일부만 적용
+      spent -= (d - applied);
+      v.base = after;
+    } else {
+      v.base = after;
+    }
+    v.delta = 0;
+  }
+
+  state.growthPool -= spent;
+  renderKpi();
+  renderSkills();
+  updateOutputs();
+
+  pushLog(`기능 배분 적용: -${spent} (풀 ${state.growthPool})`);
+}
+
+/** ---------- UI render ---------- */
+function renderSeed() {
+  const el = document.getElementById("seedView");
+  if (el) el.textContent = String(state.seed);
+}
+function renderKpi() {
+  const totalEl = document.getElementById("growthTotal");
+  const limitEl = document.getElementById("growthLimit");
+  const poolEl = document.getElementById("growthPool");
+  const scEl = document.getElementById("scenarioCount");
+  if (totalEl) totalEl.textContent = String(state.growthTotal);
+  if (limitEl) limitEl.textContent = String(GROWTH_LIMIT);
+  if (poolEl) poolEl.textContent = String(state.growthPool);
+  if (scEl) scEl.textContent = String(state.scenarioCount);
+}
+
+function renderStatsGrid() {
+  const grid = document.getElementById("statsGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  // stats first, then details
+  const ordered = [...STATS_KEYS, ...DETAIL_KEYS];
+
+  for (const key of ordered) {
+    const label = findGroupLabel(key);
+    const values = state.rolls.get(key) ?? [0,0,0];
+    const picked = state.pick.get(key) ?? 0;
+
+    const line = document.createElement("div");
+    line.className = "stat-line";
+
+    const name = document.createElement("div");
+    name.className = "stat-name";
+    name.textContent = label;
+
+    const choices = document.createElement("div");
+    choices.className = "choices";
+
+    values.forEach((raw, idx) => {
+      const v = (STATS_KEYS.includes(key)) ? capValue(key, raw) : raw;
+
+      const lab = document.createElement("label");
+      lab.className = "choice";
+
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = `pick_${key}`;
+      radio.checked = idx === picked;
+      radio.addEventListener("change", () => {
+        state.pick.set(key, idx);
+        updateOutputs();
+        renderManualStats(); // 수동표 현재값 갱신
+      });
+
+      lab.appendChild(radio);
+      lab.appendChild(document.createTextNode(fmt(v)));
+
+      choices.appendChild(lab);
+    });
+
+    // APP 자유조정 ON이면: 별도 “직접값” 입력 제공(선택값을 덮어씀)
+    if (key === "APP") {
+      const free = isFreeAppEnabled();
+      const box = document.createElement("div");
+      box.className = "inline";
+      box.style.justifyContent = "flex-end";
+
+      const currentApp = getSelectedStat("APP");
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "0";
+      input.max = free ? "999" : (getCap50Enabled() ? "50" : "999");
+      input.value = String(currentApp);
+      input.style.width = "110px";
+      input.title = "APP 직접 조정";
+
+      const btn = document.createElement("button");
+      btn.textContent = "APP 직접적용";
+      btn.addEventListener("click", () => {
+        const n = Number(input.value);
+        if (!Number.isFinite(n) || n < 0) {
+          alert("APP 값이 올바르지 않아.");
+          return;
+        }
+        const v = Math.floor(n);
+        // 자유조정 ON이면 cap 무시, OFF면 cap 적용
+        const applied = (free) ? v : capValue("APP", v);
+        // rolls/pick 구조를 유지하기 위해: 선택된 슬롯에 반영
+        const pickedIdx = state.pick.get("APP") ?? 0;
+        const arr = state.rolls.get("APP") ?? [0,0,0];
+        arr[pickedIdx] = applied;
+        state.rolls.set("APP", arr);
+        updateOutputs();
+        renderManualStats();
+        pushLog(`APP 직접 적용: ${applied}`);
+      });
+
+      box.appendChild(input);
+      box.appendChild(btn);
+
+      line.appendChild(choices);
+      line.appendChild(box);
+    } else {
+      line.appendChild(name);
+      line.appendChild(choices);
+      grid.appendChild(line);
+      continue;
+    }
+
+    // APP 라인은 구조가 달라서 name 먼저
+    line.insertBefore(name, line.firstChild);
+    grid.appendChild(line);
+  }
+}
+
+function renderSkills() {
+  const body = document.getElementById("skillsBody");
+  if (!body) return;
+  body.innerHTML = "";
+
+  const sorted = Array.from(state.skills.entries()).sort((a,b) => a[0].localeCompare(b[0], "ko"));
+  const cap = getSkillCap();
+
+  for (const [name, v] of sorted) {
+    const tr = document.createElement("tr");
+
+    const tdName = document.createElement("td");
+    tdName.textContent = name;
+
+    const tdBase = document.createElement("td");
+    tdBase.className = "num";
+    tdBase.textContent = String(v.base);
+
+    const tdDelta = document.createElement("td");
+    tdDelta.className = "num";
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.max = String(Math.max(0, cap - v.base));
+    input.value = String(v.delta);
+    input.addEventListener("input", () => {
+      const n = Number(input.value);
+      v.delta = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+    });
+    tdDelta.appendChild(input);
+
+    const tdApply = document.createElement("td");
+    tdApply.className = "num";
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "삭제";
+    delBtn.addEventListener("click", () => removeSkill(name));
+    tdApply.appendChild(delBtn);
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdBase);
+    tr.appendChild(tdDelta);
+    tr.appendChild(tdApply);
+
+    body.appendChild(tr);
+  }
+}
+
+function getSelectedStat(key) {
+  const arr = state.rolls.get(key) ?? [0,0,0];
+  const idx = state.pick.get(key) ?? 0;
+  const raw = arr[idx] ?? 0;
+  return STATS_KEYS.includes(key) ? capValue(key, raw) : raw;
+}
+
+/** manual stats (backstory agreement) */
+function renderManualStats() {
+  const body = document.getElementById("manualStatsBody");
+  if (!body) return;
+  body.innerHTML = "";
+
+  for (const k of STATS_KEYS) {
+    const tr = document.createElement("tr");
+
+    const tdK = document.createElement("td");
+    tdK.textContent = findGroupLabel(k);
+
+    const tdCur = document.createElement("td");
+    tdCur.className = "num";
+    tdCur.textContent = String(getSelectedStat(k));
+
+    const tdIn = document.createElement("td");
+    tdIn.className = "num";
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.min = "0";
+    inp.max = (k === "APP" && isFreeAppEnabled()) ? "999" : (getCap50Enabled() ? "50" : "999");
+    inp.value = String(getSelectedStat(k));
+    inp.dataset.key = k;
+    tdIn.appendChild(inp);
+
+    tr.appendChild(tdK);
+    tr.appendChild(tdCur);
+    tr.appendChild(tdIn);
+    body.appendChild(tr);
+  }
+}
+
+function applyManualStats() {
+  const body = document.getElementById("manualStatsBody");
+  if (!body) return;
+
+  const inputs = Array.from(body.querySelectorAll("input[type='number']"));
+  for (const inp of inputs) {
+    const key = String(inp.dataset.key || "");
+    if (!STATS_KEYS.includes(key)) continue;
+
+    const n = Number(inp.value);
+    if (!Number.isFinite(n) || n < 0) continue;
+
+    const v = Math.floor(n);
+    const applied = (key === "APP" && isFreeAppEnabled()) ? v : capValue(key, v);
+
+    const idx = state.pick.get(key) ?? 0;
+    const arr = state.rolls.get(key) ?? [0,0,0];
+    arr[idx] = applied;
+    state.rolls.set(key, arr);
+  }
+
+  renderStatsGrid();
+  renderManualStats();
+  updateOutputs();
+  pushLog(`수동 특성치 적용`);
+}
+
+/** outputs */
+function buildSummaryText() {
+  const lines = [];
+  lines.push(`탐사자 요약`);
+  lines.push(`seed: ${state.seed}`);
+  if (state.isFirstGenApplied) lines.push(`첫 생성(13세) 규칙: 적용됨`);
+  lines.push("");
+
+  lines.push(`[특성치] (선택값)`);
+  for (const k of STATS_KEYS) {
+    lines.push(`${findGroupLabel(k)}: ${getSelectedStat(k)}`);
+  }
+
+  lines.push("");
+  lines.push(`[세부사항] (선택값: 1~10)`);
+  for (const k of DETAIL_KEYS) {
+    lines.push(`${findGroupLabel(k)}: ${getSelectedStat(k)}`);
+  }
+
+  lines.push("");
+  lines.push(`[성장]`);
+  lines.push(`회차: ${state.scenarioCount}`);
+  lines.push(`누적 성장: ${state.growthTotal}/${GROWTH_LIMIT}`);
+  lines.push(`배분 풀: ${state.growthPool}`);
+  lines.push("");
+
+  lines.push(`[기능]`);
+  const sorted = Array.from(state.skills.entries()).sort((a,b) => a[0].localeCompare(b[0], "ko"));
+  for (const [name, v] of sorted) {
+    lines.push(`${name}: ${v.base}`);
+  }
+
+  return lines.join("\n");
+}
+
+function buildRoll20Text() {
+  // Roll20 채팅에 붙여넣기 좋은 “짧은 블록”
+  const parts = [];
+  parts.push(`탐사자 만들기 결과 (seed=${state.seed})`);
+  parts.push(`특성치: STR ${getSelectedStat("STR")} / CON ${getSelectedStat("CON")} / SIZ ${getSelectedStat("SIZ")} / DEX ${getSelectedStat("DEX")} / INT ${getSelectedStat("INT")} / APP ${getSelectedStat("APP")} / POW ${getSelectedStat("POW")} / EDU ${getSelectedStat("EDU")} / LUCK ${getSelectedStat("LUCK")}`);
+  parts.push(`세부(1d10): 신념 ${getSelectedStat("BELIEF")}, 사람 ${getSelectedStat("PERSON")}, 장소 ${getSelectedStat("PLACE")}, 물건 ${getSelectedStat("THING")}, 성격 ${getSelectedStat("TRAIT")}`);
+  parts.push(`성장: ${state.scenarioCount}회차, 누적 ${state.growthTotal}/${GROWTH_LIMIT}, 풀 ${state.growthPool}`);
+  return parts.join("\n");
+}
+
+function updateOutputs() {
+  const sum = document.getElementById("outSummary");
+  const r20 = document.getElementById("outRoll20");
+  if (sum) sum.value = buildSummaryText();
+  if (r20) r20.value = buildRoll20Text();
+}
+
+function renderAll() {
+  renderSeed();
+  renderKpi();
+  renderStatsGrid();
+  renderSkills();
+  renderManualStats();
+  updateOutputs();
+  renderLog();
+}
+
+/** ---------- copy / print ---------- */
+async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
     alert("복사 완료!");
-  } catch {
-    // clipboard가 막힌 환경 대비
-    const ta = document.getElementById("out");
-    ta.focus();
+  } catch (e) {
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
     ta.select();
     document.execCommand("copy");
+    ta.remove();
     alert("복사 완료!");
   }
+}
+
+/** ---------- reset ---------- */
+function resetAll() {
+  const seed = parseSeed() ?? makeSeed();
+  state.rolls.clear();
+  state.pick.clear();
+  state.isFirstGenApplied = false;
+
+  state.scenarioCount = 0;
+  state.growthTotal = 0;
+  state.growthPool = 0;
+
+  seedDefaultSkills();
+  state.log = [];
+
+  doRoll(seed);
+  pushLog("전체 리셋");
+}
+
+/** ---------- wire up ---------- */
+document.getElementById("rollBtn").addEventListener("click", () => {
+  doRoll(makeSeed());
+});
+document.getElementById("firstGenBtn").addEventListener("click", () => {
+  applyFirstGeneration();
+});
+document.getElementById("growthRollBtn").addEventListener("click", () => {
+  scenarioGrowthRoll();
+});
+document.getElementById("growthManualBtn").addEventListener("click", () => {
+  scenarioGrowthManual();
+});
+document.getElementById("resetBtn").addEventListener("click", () => {
+  resetAll();
 });
 
-// init
-const seed = parseSeed() ?? makeSeed();
-const url = new URL(location.href);
-url.searchParams.set("seed", String(seed));
-history.replaceState({}, "", url.toString());
-doRoll(seed);
+document.getElementById("applySkillBtn").addEventListener("click", () => {
+  applySkillDeltas();
+});
+document.getElementById("clearDeltaBtn").addEventListener("click", () => {
+  clearSkillDeltas();
+});
+document.getElementById("addSkillBtn").addEventListener("click", () => {
+  const nameEl = document.getElementById("newSkillName");
+  const baseEl = document.getElementById("newSkillBase");
+  const name = nameEl ? String(nameEl.value) : "";
+  const base = baseEl ? Number(baseEl.value) : 0;
+  addSkill(name, base);
+  if (nameEl) nameEl.value = "";
+});
+document.getElementById("applyManualStatsBtn").addEventListener("click", () => {
+  applyManualStats();
+});
+
+document.getElementById("copySummaryBtn").addEventListener("click", async () => {
+  const el = document.getElementById("outSummary");
+  if (!el) return;
+  await copyText(el.value);
+});
+document.getElementById("copyRoll20Btn").addEventListener("click", async () => {
+  const el = document.getElementById("outRoll20");
+  if (!el) return;
+  await copyText(el.value);
+});
+document.getElementById("printBtn").addEventListener("click", () => {
+  window.print();
+});
+
+// CAP 토글 변경 시 즉시 재렌더 (상한 적용/입력 max 갱신)
+document.getElementById("cap50").addEventListener("change", () => {
+  // stats cap는 선택값 표시에서만 영향, skills cap는 입력 max에 영향
+  renderStatsGrid();
+  renderSkills();
+  renderManualStats();
+  updateOutputs();
+  pushLog(`상한 50 토글: ${getCap50Enabled() ? "ON" : "OFF"}`);
+});
+document.getElementById("freeApp").addEventListener("change", () => {
+  renderStatsGrid();
+  renderManualStats();
+  updateOutputs();
+  pushLog(`APP 자유 조정: ${isFreeAppEnabled() ? "ON" : "OFF"}`);
+});
+
+/** ---------- init ---------- */
+(function init() {
+  seedDefaultSkills();
+
+  const seed = parseSeed() ?? makeSeed();
+  setSeedInUrl(seed);
+
+  // 초기 주사위 굴림
+  doRoll(seed);
+
+  // 초기 로그 한 줄
+  pushLog("페이지 초기화 완료");
+})();
 </script>
 </body>
 </html>
