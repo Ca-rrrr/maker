@@ -142,7 +142,6 @@
       white-space: pre-wrap;
     }
 
-    /* ✅ 모바일 최적화 */
     @media (max-width: 720px){
       body{ margin:12px; }
       h1{ font-size: 18px; }
@@ -210,7 +209,7 @@
       <div class="card wide">
         <div class="section-title">
           <span>특성치 / 세부사항 (3회 후보 선택)</span>
-          <small>13세: APP 제외 /2, EDU=45 고정 (중복 적용 방지)</small>
+          <small>13세: APP/운(LUCK) 제외 /2, EDU=45 고정 (중복 적용 방지)</small>
         </div>
 
         <div class="grid" id="statsGrid"></div>
@@ -302,7 +301,7 @@ function rollNdM(rng, n, m) { let s = 0; for (let i=0;i<n;i++) s += rollDie(rng,
 
 /** config */
 const GROWTH_LIMIT = 120;
-const AUTO_SAVE_KEY = "coc_maker_autosave_v6";
+const AUTO_SAVE_KEY = "coc_maker_autosave_v7";
 const STATS_KEYS = ["STR","CON","SIZ","DEX","INT","APP","POW","EDU","LUCK"];
 const DETAIL_KEYS = ["BELIEF","PERSON","PLACE","THING","TRAIT"];
 
@@ -316,6 +315,7 @@ const RULES_TEXT = `【캐릭터를 성장시키자!】
 각 특성치의 주사위를 굴린 후 2로 나눕니다. (ex. 근력: (3D6x5)/2)
 교육은 모두 45로 통일합니다.
 특성/기능의 최대 수치는 50을 넘을 수 없습니다.
+※ 이 툴에서는 13세 적용 시 외모(APP)와 운(LUCK)은 /2 적용에서 제외됩니다.
 
 [1차 성장: 16세]
 근력, 크기, 민첩, 지능, 건강을 1D10점 향상합니다.
@@ -435,8 +435,6 @@ function pushLog(line) {
 }
 
 function stageRng(stageCode, key) {
-  // stageCode: 13/16/19/22/25 등
-  // key: "STR" 등 - 문자열을 숫자로 만들기(간단 해시)
   let k = 0;
   for (let i=0;i<key.length;i++) k = (k * 31 + key.charCodeAt(i)) >>> 0;
   const s = hash32(state.seed >>> 0, (stageCode * 1000 + (k % 997)) >>> 0);
@@ -491,13 +489,15 @@ function applyFirstGen13() {
     alert("이미 13세 적용이 되어 있어! 다시 하려면 리셋 또는 3회 굴림을 눌러줘.");
     return;
   }
+  // ✅ 13세: APP/운(LUCK) 제외 /2, EDU=45 고정
   for (const k of STATS_KEYS) {
     if (k === "EDU") {
       state.rolls.set(k, [45,45,45]);
       state.pick.set(k, 0);
       continue;
     }
-    if (k === "APP") continue;
+    if (k === "APP" || k === "LUCK") continue;
+
     const values = state.rolls.get(k);
     if (!values) continue;
     const halved = values.map((v) => Math.floor(v / 2));
@@ -506,7 +506,7 @@ function applyFirstGen13() {
   }
   state.isFirstGenApplied = true;
   renderAll();
-  pushLog("첫 생성(13세) 적용: APP 제외 /2, EDU=45 고정");
+  pushLog("첫 생성(13세) 적용: APP/운(LUCK) 제외 /2, EDU=45 고정");
 }
 
 /** milestone growth rules */
@@ -519,18 +519,20 @@ function growth16() {
   for (const s of upStats) {
     const rng = stageRng(16, s);
     const d = rollNdM(rng, 1, 10);
-    setSelectedRawValue(s, (state.rolls.get(s) ?? [0,0,0])[state.pick.get(s) ?? 0] + d);
+    const cur = (state.rolls.get(s) ?? [0,0,0])[state.pick.get(s) ?? 0];
+    setSelectedRawValue(s, cur + d);
     deltas.push(`${labelByKey[s]} +${d}`);
   }
 
-  // POW/EDU: 각각 최대 10점 내 자유
   const powAdd = promptIntInRange("16세 성장: 정신력(POW) +0~+10 중 얼마 올릴래?", 0, 10, 0);
   if (powAdd === null) return;
   const eduAdd = promptIntInRange("16세 성장: 교육(EDU) +0~+10 중 얼마 올릴래?", 0, 10, 0);
   if (eduAdd === null) return;
 
-  setSelectedRawValue("POW", (state.rolls.get("POW") ?? [0,0,0])[state.pick.get("POW") ?? 0] + powAdd);
-  setSelectedRawValue("EDU", (state.rolls.get("EDU") ?? [0,0,0])[state.pick.get("EDU") ?? 0] + eduAdd);
+  const powCur = (state.rolls.get("POW") ?? [0,0,0])[state.pick.get("POW") ?? 0];
+  const eduCur = (state.rolls.get("EDU") ?? [0,0,0])[state.pick.get("EDU") ?? 0];
+  setSelectedRawValue("POW", powCur + powAdd);
+  setSelectedRawValue("EDU", eduCur + eduAdd);
   deltas.push(`정신력 +${powAdd}`, `교육 +${eduAdd}`);
 
   state.milestones.g16 = true;
@@ -554,7 +556,6 @@ function growth19() {
     deltas.push(`${labelByKey[s]} ${signed >= 0 ? "+" : ""}${signed}`);
   }
 
-  // POW/EDU: 각 10점씩 향상
   const powCur = (state.rolls.get("POW") ?? [0,0,0])[state.pick.get("POW") ?? 0];
   const eduCur = (state.rolls.get("EDU") ?? [0,0,0])[state.pick.get("EDU") ?? 0];
   setSelectedRawValue("POW", powCur + 10);
@@ -579,7 +580,6 @@ function parseStatCsv(input) {
 function growth22() {
   if (state.milestones.g22) { alert("이미 3차 성장(22세)을 적용했어."); return; }
 
-  // 4가지 선택: 1d10 (하락도 가능)
   const raw4 = prompt(
     `22세 성장: 1D10 올릴(또는 내릴) 특성 4개를 콤마로 입력\n예: STR,SIZ,DEX,INT\n가능: ${statListForChoice.join(", ")}`,
     "STR,SIZ,DEX,INT"
@@ -600,7 +600,6 @@ function growth22() {
     deltas.push(`${labelByKey[s] ?? s} ${signed >= 0 ? "+" : ""}${signed}`);
   }
 
-  // 그 외 3가지: 향상 판정 성공 시 +1d10 (여긴 하락 언급 없음 -> +만)
   const remaining = statListForChoice.filter((k) => !chosen4.includes(k));
   const raw3 = prompt(
     `22세 성장: 향상 판정할 특성 3개를 콤마로 입력\n(성공한 것만 +1D10)\n가능(선택4 제외): ${remaining.join(", ")}`,
@@ -650,7 +649,6 @@ function growth25() {
     deltas.push(`${labelByKey[s] ?? s} +${d}(성공)`);
   }
 
-  // POW/EDU: 원할 경우 1d10씩 상승
   const powWant = promptYesNo("25세 성장: 정신력(POW) 1D10 상승할래?", false);
   if (powWant === null) return;
   if (powWant) {
@@ -755,7 +753,6 @@ function renderStatsGrid() {
     line.appendChild(name);
     line.appendChild(choices);
 
-    // APP 직접 조정(자유)
     if (key === "APP") {
       const box = document.createElement("div");
       box.style.display = "flex";
@@ -776,9 +773,7 @@ function renderStatsGrid() {
         if (!Number.isFinite(n) || n < 0) { alert("APP 값이 올바르지 않아."); return; }
         const v = Math.floor(n);
         const applied = isFreeAppEnabled() ? v : capValue("APP", v);
-
         setSelectedRawValue("APP", applied);
-
         renderKpi();
         updateOutputs();
         autoSave();
@@ -799,7 +794,7 @@ function buildSummaryText() {
   const lines = [];
   lines.push("탐사자 요약");
   lines.push(`seed: ${state.seed}`);
-  if (state.isFirstGenApplied) lines.push("첫 생성(13세): APP 제외 /2, EDU=45 고정");
+  if (state.isFirstGenApplied) lines.push("첫 생성(13세): APP/운(LUCK) 제외 /2, EDU=45 고정");
   lines.push(`마일스톤: 16=${state.milestones.g16 ? "O":"-" } / 19=${state.milestones.g19 ? "O":"-" } / 22=${state.milestones.g22 ? "O":"-" } / 25=${state.milestones.g25 ? "O":"-" }`);
   lines.push(`기능점수 예산: ${computeSkillBudgetText()}`);
   lines.push("");
@@ -860,7 +855,7 @@ function exportJsonObject() {
   for (const [k, v] of state.pick.entries()) pick[k] = v;
 
   return {
-    version: 6,
+    version: 7,
     savedAt: new Date().toISOString(),
     seed: state.seed,
     isFirstGenApplied: state.isFirstGenApplied,
@@ -893,12 +888,7 @@ function loadFromObject(obj) {
   state.growthPool = Math.max(0, Math.floor(Number(obj.growthPool) || 0));
   state.log = Array.isArray(obj.log) ? obj.log.map(String) : [];
   state.milestones = obj.milestones && typeof obj.milestones === "object"
-    ? {
-        g16: !!obj.milestones.g16,
-        g19: !!obj.milestones.g19,
-        g22: !!obj.milestones.g22,
-        g25: !!obj.milestones.g25
-      }
+    ? { g16:!!obj.milestones.g16, g19:!!obj.milestones.g19, g22:!!obj.milestones.g22, g25:!!obj.milestones.g25 }
     : { g16:false, g19:false, g22:false, g25:false };
 
   const capEl = document.getElementById("cap50");
